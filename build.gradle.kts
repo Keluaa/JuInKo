@@ -1,0 +1,26 @@
+plugins {
+    kotlin("jvm") version "1.8.21"
+    id("maven-publish")
+}
+
+group = "com.keluaa"
+version = "1.0.0"
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation("org.jetbrains.kotlin:kotlin-reflect:1.8.21")
+    implementation("net.java.dev.jna:jna:5.13.0")
+    implementation("net.swiftzer.semver:semver:1.3.0")
+    testImplementation(kotlin("test"))
+}
+
+tasks.test {
+    useJUnitPlatform()
+}
+
+kotlin {
+    jvmToolchain(11)
+}
