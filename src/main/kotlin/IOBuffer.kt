@@ -1,12 +1,15 @@
 package com.keluaa.juinko
 
+import com.keluaa.juinko.types.JuliaStruct
 import com.sun.jna.Pointer
 import com.sun.jna.PointerType
 
 class IOBuffer: PointerType {
 
     companion object {
-        private const val SIZE_OFFSET = 0x10  // TODO: set with 'fieldoffset(IOBuffer, 6)' ?
+        private val STRUCT = JuliaStruct("IOBuffer", JuliaStruct.Location.BASE)
+
+        private val OFFSET_size: Long by STRUCT.field("size")
     }
 
     private val jl: Julia
@@ -24,9 +27,7 @@ class IOBuffer: PointerType {
     }
 
     val size: Long
-        get() {
-            return pointer.getLong(SIZE_OFFSET.toLong())
-        }
+        get() = pointer.getLong(OFFSET_size)
 
     val isEmpty: Boolean
         get() = size == 0L
