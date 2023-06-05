@@ -74,9 +74,11 @@ class JuliaLoader {
             }
         }
 
-        fun get(init: Boolean = true): Julia {
+        internal fun get(init: Boolean): Julia {
             if (INSTANCE == null) load(init)
             return INSTANCE!!
         }
+
+        fun get(): Julia = get(true)
     }
 }

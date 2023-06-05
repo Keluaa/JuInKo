@@ -123,4 +123,15 @@ internal class JuliaImplTest: BaseTest() {
         assertEquals(Pointer.nativeValue(jl.getBaseObj("nothing")), Pointer.nativeValue(jl.jl_nothing()))
         assertTrue(jl.isNothing(jl.jl_nothing()))
     }
+
+    @Test
+    fun readme_example() {
+        val result = GCStack(jl, 2).use { stack ->
+            stack[0] = jl.jl_box_int64(1)
+            stack[1] = jl.jl_box_int64(2)
+            val resultBoxed = jl.jl_call(jl.getBaseObj("+"), stack.array(), 2)
+            jl.jl_unbox_int64(resultBoxed!!)
+        }
+        assertEquals(3, result)
+    }
 }
