@@ -1,6 +1,5 @@
 package com.keluaa.juinko
 
-import com.keluaa.juinko.impl.JuliaLoader
 import com.keluaa.juinko.types.JuliaOptions
 import com.sun.jna.Pointer
 import org.junit.jupiter.api.Assertions
@@ -11,15 +10,14 @@ import kotlin.reflect.KClass
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
-internal class PointerOffsets {
+internal class PointerOffsets: BaseTest() {
 
     companion object {
-        private lateinit var jl: Julia
-
         @BeforeAll
         @JvmStatic
         fun setUp() {
-            jl = JuliaLoader.get(false)
+            initJulia()
+            ensureImplConstantsNotInitialized()
             // Note: jl.exceptionCheck, jl.permMem and jl.errorBuffer are uninitialized and should not be used here
         }
     }

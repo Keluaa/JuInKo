@@ -1,30 +1,18 @@
 package com.keluaa.juinko
 
-import com.keluaa.juinko.impl.JuliaLoader
 import com.sun.jna.CallbackReference
 import org.junit.jupiter.api.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantLock
 
-internal class ThreadingTest {
+internal class ThreadingTest: BaseTest() {
 
     companion object {
-        private const val JULIA_THREADS = 4
-
-        private lateinit var jl: Julia
-
         @BeforeAll
         @JvmStatic
         fun setUp() {
-            if (JuliaLoader.isJuliaLoaded() && JuliaLoader.getOptions().nthreads != JULIA_THREADS) {
-                throw Exception("Cannot set the number of threads since Julia is already initialized.")
-            }
-
-            JuliaLoader.loadLibrary()
-            val options = JuliaLoader.getOptions()
-            options.setNumThreads(JULIA_THREADS)
-
-            jl = JuliaLoader.get()
+            initJulia()
+            ensureJuliaHasThreads()
         }
     }
 

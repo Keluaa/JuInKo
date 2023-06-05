@@ -1,20 +1,18 @@
 package com.keluaa.juinko
 
-import com.keluaa.juinko.impl.JuliaLoader
 import com.sun.jna.Pointer
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
-internal class JuliaImplTest {
+internal class JuliaImplTest: BaseTest() {
 
     companion object {
-        private lateinit var jl: Julia
-
         @BeforeAll
         @JvmStatic
         fun setUp() {
-            jl = JuliaLoader.get()
+            initJulia()
+            ensureImplConstantsInitialized()
         }
     }
 

@@ -1,19 +1,17 @@
 package com.keluaa.juinko
 
-import com.keluaa.juinko.impl.JuliaLoader
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 
-class GarbageCollectorTest {
+class GarbageCollectorTest: BaseTest() {
 
     companion object {
-        private lateinit var jl: Julia
-
         @BeforeAll
         @JvmStatic
         fun setUp() {
-            jl = JuliaLoader.get()
+            initJulia()
+            ensureImplConstantsInitialized()
         }
     }
 

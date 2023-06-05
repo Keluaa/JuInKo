@@ -13,6 +13,7 @@ class JuliaLoader {
         private var LIB_JULIA_INTERNAL: NativeLibrary? = null
         private var INSTANCE: JuliaImplBase? = null
 
+        fun isLibJuliaLoaded() = LIB_JULIA != null
         fun isJuliaLoaded() = INSTANCE != null
 
         private fun checkStringEncoding() {

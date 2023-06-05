@@ -149,4 +149,6 @@ abstract class JuliaImplBase: Julia {
         errorBuffer = IOBuffer(this)
         permMemory.insert(errorBuffer.pointer)
     }
+
+    internal fun constantAreInitialized() = ::permMemory.isInitialized
 }

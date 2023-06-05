@@ -1,21 +1,19 @@
 package com.keluaa.juinko
 
-import com.keluaa.juinko.impl.JuliaLoader
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 
-internal class ExceptionsTest {
+internal class ExceptionsTest: BaseTest() {
 
     companion object {
-        private lateinit var jl: Julia
-
         @BeforeAll
         @JvmStatic
         fun setUp() {
-            jl = JuliaLoader.get()
+            initJulia()
+            ensureImplConstantsInitialized()
         }
 
         private const val PRINT_STACK_TRACES = true

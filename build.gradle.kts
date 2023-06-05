@@ -15,6 +15,7 @@ dependencies {
     implementation("net.java.dev.jna:jna:5.13.0")
     implementation("net.swiftzer.semver:semver:1.3.0")
     testImplementation(kotlin("test"))
+    testImplementation("org.junit.platform:junit-platform-suite-engine:1.9.3")
 }
 
 tasks.test {
