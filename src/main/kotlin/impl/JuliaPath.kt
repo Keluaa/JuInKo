@@ -1,5 +1,6 @@
 package com.keluaa.juinko.impl
 
+import java.io.FileNotFoundException
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
@@ -20,8 +21,7 @@ class JuliaPath {
             if (path == null)
                 path = pathFromCmdLine()
             if (path == null)
-                // TODO: better exception, here this will completely remove all hope in displaying proper error messages to the user
-                throw RuntimeException("Could not get the path to the Julia bin dir from neither the ENV or command line.")
+                throw FileNotFoundException("Could not get the path to the Julia bin dir from neither the ENV or command line.")
 
             path = path.replace("\\\\", "/")
                        .replace('\\', '/')
