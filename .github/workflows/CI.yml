@@ -26,6 +26,7 @@ jobs:
       - uses: gradle/wrapper-validation-action@v1.0.6
 
       - uses: julia-actions/setup-julia@v1
+        id: julia
         with:
           version: ${{ matrix.jl_version }}
           arch: ${{ matrix.arch }}
@@ -33,7 +34,9 @@ jobs:
       - uses: julia-actions/cache@v1
 
       - name: Run Tests
-        run: ./gradlew check
+        run: |
+          export JULIA=${{ julia-bindir }}
+          ./gradlew check
 
       - name: Collect Tests Result
         if: ${{ failure() }}

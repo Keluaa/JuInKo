@@ -4,6 +4,7 @@ import java.io.FileNotFoundException
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
+import kotlin.io.path.Path
 
 class JuliaPath {
     companion object {
@@ -32,7 +33,15 @@ class JuliaPath {
 
         private fun pathFromProperties(): String? = System.getProperty("juinko.julia_path", null)
 
-        private fun pathFromEnv(): String? = System.getenv("JULIA")
+        private fun pathFromEnv(): String? {
+            val jl_bindir = System.getenv("JULIA_BINDIR")
+            if (jl_bindir != null) return jl_bindir
+
+            val jl_exe = System.getenv("JULIA")
+            if (jl_exe != null) return Path(jl_exe).parent.toString()
+
+            return null
+        }
 
         private fun pathFromCmdLine(): String? {
             val juliaRunCmd = "julia --startup-file=no -q -O0 -E"
