@@ -1,0 +1,46 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  test:
+    name: Julia ${{ matrix.jl_version }} - ${{ matrix.os }} - ${{ matrix.arch }} - ${{ github.event_name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        jl_version:
+          - '1.9'
+          - 'nightly'
+        os:
+          - ubuntu-latest
+        arch:
+          - x64
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: gradle/wrapper-validation-action@v1.0.6
+
+      - uses: julia-actions/setup-julia@v1
+        with:
+          version: ${{ matrix.jl_version }}
+          arch: ${{ matrix.arch }}
+
+      - uses: julia-actions/cache@v1
+
+      - name: Run Tests
+        run: ./gradlew check
+
+      - name: Collect Tests Result
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v3
+        with:
+          name: tests-result
+          path: ${{ github.workspace }}/build/reports/tests
