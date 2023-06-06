@@ -10,8 +10,8 @@ class JuliaPath {
     companion object {
         private val LOG: Logger = Logger.getLogger(JuliaPath::class.simpleName)
 
-        private const val JULIA_LIB_NAME = "libjulia"
-        private const val JULIA_INTERNAL_LIB_NAME = "libjulia-internal"
+        private const val JULIA_LIB_NAME = "julia"
+        private const val JULIA_INTERNAL_LIB_NAME = "julia-internal"
         val JULIA_BIN_PATH: String
         val JULIA_INTERNAL_BIN_PATH: String
 
@@ -27,8 +27,11 @@ class JuliaPath {
             path = path.replace("\\\\", "/")
                        .replace('\\', '/')
 
-            JULIA_BIN_PATH = path + '/' + System.mapLibraryName(JULIA_LIB_NAME)
-            JULIA_INTERNAL_BIN_PATH = path + '/' + System.mapLibraryName(JULIA_INTERNAL_LIB_NAME)
+            // On Windows 'System.mapLibraryName' does not add the 'lib' prefix of the Julia libs
+            val prefix = if (System.getProperty("os.name").startsWith("Windows")) "lib" else ""
+
+            JULIA_BIN_PATH = path + '/' + prefix + System.mapLibraryName(JULIA_LIB_NAME)
+            JULIA_INTERNAL_BIN_PATH = path + '/' + prefix + System.mapLibraryName(JULIA_INTERNAL_LIB_NAME)
         }
 
         private fun pathFromProperties(): String? = System.getProperty("juinko.julia_path", null)
