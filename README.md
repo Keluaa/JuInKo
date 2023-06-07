@@ -18,8 +18,9 @@ Bindings for Julia 1.7 to 1.8 can be used but without multi-threading support.
 
 `JuliaPath` attempts 3 methods to find the Julia libraries, in this order:
  - the `"juinko.julia_path"` system property
+ - the `JULIA_BINDIR` environment variable
  - the `JULIA` environment variable
- - or from the command line: `julia -E "unsafe_string(ccall(:jl_get_libdir, Cstring, ()))"`
+ - or from the command line (and therefore the `PATH`): `julia -E "unsafe_string(ccall(:jl_get_libdir, Cstring, ()))"`
 
 Then `JuliaLoader.get()` allows to access and initialize the `Julia` interface instance
 corresponding to the library found by `JuliaPath`.

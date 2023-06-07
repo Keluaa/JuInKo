@@ -8,7 +8,7 @@ import com.sun.jna.Pointer
 class JuliaImpl_1_9_0: JuliaImplBase() {
     companion object {
         init {
-            Native.register(JuliaPath.JULIA_BIN_PATH)
+            Native.register(JuliaPath.LIB_JULIA)
         }
     }
 
@@ -152,7 +152,7 @@ class JuliaImpl_1_9_0: JuliaImplBase() {
     private class Internal {
         companion object {
             init {
-                Native.register(JuliaPath.JULIA_INTERNAL_BIN_PATH)
+                Native.register(JuliaPath.LIB_JULIA_INTERNAL)
             }
         }
 

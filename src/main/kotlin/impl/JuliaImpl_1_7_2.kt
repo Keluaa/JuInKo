@@ -8,7 +8,7 @@ import com.sun.jna.Pointer
 class JuliaImpl_1_7_2 : JuliaImplBase() {
     companion object {
         init {
-            Native.register(JuliaPath.JULIA_BIN_PATH)
+            Native.register(JuliaPath.LIB_JULIA)
         }
     }
 
@@ -162,7 +162,7 @@ class JuliaImpl_1_7_2 : JuliaImplBase() {
     private class Internal {
         companion object {
             init {
-                Native.register(JuliaPath.JULIA_INTERNAL_BIN_PATH)
+                Native.register(JuliaPath.LIB_JULIA_INTERNAL)
             }
         }
 
@@ -178,10 +178,6 @@ class JuliaImpl_1_7_2 : JuliaImplBase() {
         external fun jl_fptr_const_return(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
         external fun jl_fptr_sparam(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
         external fun jl_fptr_interpret_call(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-
-        external fun jl_dump_method_asm(linfo: jl_method_instance_t, world: Long, raw_mc: Byte, getwrapper: Byte, asm_variant: String, debuginfo: String, binary: Byte): jl_value_t
-        external fun jl_dump_fptr_asm(fptr: Long, raw_mc: Byte, asm_variant: String, debuginfo: String, binary: Byte): jl_value_t
-        external fun jl_dump_function_ir(dump: jl_llvmf_dump_t, strip_ir_metadata: Byte, dump_module: Byte, debuginfo: String): jl_value_t
 
         external fun jl_get_backtrace(): jl_value_t
 

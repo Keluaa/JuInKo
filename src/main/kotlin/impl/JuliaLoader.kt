@@ -14,7 +14,6 @@ class JuliaLoader {
         private var INSTANCE: JuliaImplBase? = null
 
         fun isLibJuliaLoaded() = LIB_JULIA != null
-        fun isJuliaLoaded() = INSTANCE != null
 
         private fun checkStringEncoding() {
             val encoding = System.getProperty("jna.encoding", null)
@@ -34,14 +33,15 @@ class JuliaLoader {
             //  to be reworked, as well as all classes depending on it to initialize static fields.
 
             checkStringEncoding()
-            LIB_JULIA = NativeLibrary.getInstance(JuliaPath.JULIA_BIN_PATH)
+
+            LIB_JULIA = NativeLibrary.getInstance(JuliaPath.LIB_JULIA)
             JuliaVersion.setJuliaVersion(LIB_JULIA!!)
             if (JuliaVersion < JuliaVersion(1, 7))
                 throw VersionException("Julia versions before 1.7 are not supported")
 
-            LIB_JULIA_INTERNAL = NativeLibrary.getInstance(JuliaPath.JULIA_INTERNAL_BIN_PATH)
+            LIB_JULIA_INTERNAL = NativeLibrary.getInstance(JuliaPath.LIB_JULIA_INTERNAL)
 
-            LOG.info("Loading Julia version ${JuliaVersion.get()} from lib at ${JuliaPath.JULIA_BIN_PATH}")
+            LOG.info("Loading Julia version ${JuliaVersion.get()} from lib at ${LIB_JULIA!!.file}")
         }
 
         fun getOptions(): JuliaOptions {

@@ -139,7 +139,7 @@ abstract class JuliaImplBase: Julia {
         m_jl_n_threads = lib_julia.getGlobalVariableAddress("jl_n_threads").getInt(0L)
         m_jl_gc_running = lib_internal.getGlobalVariableAddress("jl_gc_running")
 
-        varargsImpl = Native.load(JuliaPath.JULIA_BIN_PATH, getVarargsImplClass())
+        varargsImpl = Native.load(JuliaPath.LIB_JULIA, getVarargsImplClass())
 
         JuliaStruct.jl = this
     }

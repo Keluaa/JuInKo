@@ -1,12 +1,12 @@
 package com.keluaa.juinko.impl
 
+import com.sun.jna.Platform
+import java.io.File
 import java.io.FileNotFoundException
-import java.nio.file.Files
 import java.nio.file.Paths
 import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
-import kotlin.io.path.Path
 
 class JuliaPath {
     companion object {
@@ -15,8 +15,13 @@ class JuliaPath {
         private const val JULIA_LIB_NAME = "julia"
         private const val JULIA_INTERNAL_LIB_NAME = "julia-internal"
 
-        val JULIA_BIN_PATH: String
-        val JULIA_INTERNAL_BIN_PATH: String
+        val JULIA_LIB_DIR: String
+
+        lateinit var LIB_JULIA: String
+            private set
+
+        lateinit var LIB_JULIA_INTERNAL: String
+            private set
 
         init {
             val options = arrayOf(
@@ -29,16 +34,15 @@ class JuliaPath {
             var path: String? = null
             for (option in options) {
                 path = option()
-                if (path != null && checkForLibs(cleanPath(path)))
+                if (path != null && tryPath(path))
                     break
             }
 
             if (path == null)
-                throw FileNotFoundException("Could not get the path to the Julia bin dir from neither the ENV or command line.")
+                throw FileNotFoundException("Could not get the path to the Julia lib dir from neither the ENV or command line.")
 
-            val libs = libsPaths(cleanPath(path))
-            JULIA_BIN_PATH = libs.first
-            JULIA_INTERNAL_BIN_PATH = libs.second
+            path = File(path).path  // Normalize the path
+            JULIA_LIB_DIR = path
         }
 
         private fun pathFromProperties(): String? = System.getProperty("juinko.julia_path", null)
@@ -82,24 +86,42 @@ class JuliaPath {
             return path
         }
 
-        private fun cleanPath(path: String): String {
-            return path.replace("\\\\", "/")
-                       .replace('\\', '/')
-        }
+        private fun tryPath(path: String): Boolean {
+            val dir = File(path)
+            if (!dir.isDirectory) return false
 
-        private fun libsPaths(path: String): Pair<String, String> {
-            // On Windows 'System.mapLibraryName' does not add the 'lib' prefix of the Julia libs
-            val prefix = if (System.getProperty("os.name").startsWith("Windows")) "lib" else ""
+            var libJulia = System.mapLibraryName(JULIA_LIB_NAME)
+            var libJuliaInternal = System.mapLibraryName(JULIA_INTERNAL_LIB_NAME)
 
-            val libJuliaPath = path + '/' + prefix + System.mapLibraryName(JULIA_LIB_NAME)
-            val libJuliaInternalPath = path + '/' + prefix + System.mapLibraryName(JULIA_INTERNAL_LIB_NAME)
+            if (Platform.isWindows()) {
+                libJulia = "lib$libJulia"
+                libJuliaInternal = "lib$libJuliaInternal"
+            }
 
-            return Pair(libJuliaPath, libJuliaInternalPath)
-        }
+            val possibleLibJulia = dir.list { _: File, s: String -> s.startsWith(libJulia) } ?: emptyArray()
+            val possibleLibJuliaInternal = dir.list { _: File, s: String -> s.startsWith(libJuliaInternal) } ?: emptyArray()
 
-        private fun checkForLibs(path: String): Boolean {
-            val libs = libsPaths(path)
-            return Files.exists(Path(libs.first)) && Files.exists(Path(libs.second))
+            // Make sure to always load the same library each time
+            possibleLibJulia.sort()
+            possibleLibJuliaInternal.sort()
+
+            if (possibleLibJulia.isNotEmpty()) {
+                val foundLibJulia = possibleLibJulia.first()
+
+                if (possibleLibJuliaInternal.isEmpty()) {
+                    LOG.warning("Found 'libjulia' at '$foundLibJulia', but 'libjulia-internal' was not in the same place. Skipping this directory.")
+                    return false
+                }
+
+                val foundLibJuliaInternal = possibleLibJuliaInternal.first()
+
+                LIB_JULIA = foundLibJulia
+                LIB_JULIA_INTERNAL = foundLibJuliaInternal
+
+                return true
+            }
+
+            return false
         }
     }
 }
