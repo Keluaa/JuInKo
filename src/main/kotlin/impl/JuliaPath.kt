@@ -56,13 +56,14 @@ class JuliaPath {
         }
 
         private fun pathFromCmdLine(): String? {
-            val juliaRunCmd = "julia --startup-file=no -q -O0 -E"
-            val getLibDir = "unsafe_string(ccall(:jl_get_libdir, Cstring, ()))"
-            val juliaGetLibDirCmd = "$juliaRunCmd \"$getLibDir\""
+            val juliaRunCmd = arrayOf(
+                "julia", "--startup-file=no", "-q", "-O0", "-E",
+                "unsafe_string(ccall(:jl_get_libdir, Cstring, ()))"
+            )
 
             var path: String
             try {
-                val process = Runtime.getRuntime().exec(juliaGetLibDirCmd)
+                val process = Runtime.getRuntime().exec(juliaRunCmd)
                 if (!process.waitFor(5, TimeUnit.SECONDS)) {
                     process.destroy()
                     throw Exception("Timeout")
@@ -72,7 +73,7 @@ class JuliaPath {
                 }
                 path = String(process.inputStream.readAllBytes())
             } catch (e: Exception) {
-                LOG.log(Level.WARNING, "Could not get Julia lib dir: '$juliaGetLibDirCmd' failed with", e)
+                LOG.log(Level.WARNING, "Could not get Julia lib dir: '${juliaRunCmd.joinToString(" ")}}' failed with", e)
                 return null
             }
 

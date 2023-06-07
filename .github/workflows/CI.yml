@@ -34,13 +34,11 @@ jobs:
       - uses: julia-actions/cache@v1
 
       - name: Run Tests
-        run: |
-          export JULIA=${{ julia-bindir }}
-          ./gradlew check
+        run: ./gradlew check
 
       - name: Collect Tests Result
         if: ${{ failure() }}
         uses: actions/upload-artifact@v3
         with:
-          name: tests-result
+          name: tests-result-${{ matrix.jl_version }}-${{ matrix.os }}-${{ matrix.arch }}
           path: ${{ github.workspace }}/build/reports/tests
