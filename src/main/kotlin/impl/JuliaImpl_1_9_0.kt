@@ -162,11 +162,6 @@ class JuliaImpl_1_9_0: JuliaImplBase() {
 
         external fun jl_method_compiled(@PropagatesRoot mi: jl_method_instance_t, world: Long): jl_code_instance_t
 
-        external fun jl_fptr_args(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-        external fun jl_fptr_const_return(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-        external fun jl_fptr_sparam(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-        external fun jl_fptr_interpret_call(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-
         external fun jl_lock_value(v: jl_value_t)
         external fun jl_unlock_value(v: jl_value_t)
 
@@ -197,11 +192,6 @@ class JuliaImpl_1_9_0: JuliaImplBase() {
     override fun jl_compile_method_internal(meth: jl_method_instance_t, world: Long) = internal.jl_compile_method_internal(meth, world)
 
     override fun jl_method_compiled(@PropagatesRoot mi: jl_method_instance_t, world: Long) = internal.jl_method_compiled(mi, world)
-
-    override fun jl_fptr_args(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t) = internal.jl_fptr_args(f, args, nargs, code)
-    override fun jl_fptr_const_return(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t) = internal.jl_fptr_const_return(f, args, nargs, code)
-    override fun jl_fptr_sparam(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t) = internal.jl_fptr_sparam(f, args, nargs, code)
-    override fun jl_fptr_interpret_call(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t) = internal.jl_fptr_interpret_call(f, args, nargs, code)
 
     override fun jl_lock_value(v: jl_value_t) = internal.jl_lock_value(v)
     override fun jl_unlock_value(v: jl_value_t) = internal.jl_unlock_value(v)

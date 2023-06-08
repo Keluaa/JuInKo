@@ -21,14 +21,12 @@ typealias jl_svec_t = Pointer
 typealias jl_tupletype_t = Pointer
 typealias jl_datatype_ptr = Pointer  /* jl_datatype_t, but as a Pointer object */
 typealias jl_methtable_t = Pointer
-typealias jl_callptr_t = Pointer
 typealias JL_STREAM = Pointer  /* JL_STREAM, or 'struct uv_stream_s*'. NOT A 'jl_value_t*' !! */
 
 /* Internal Julia types */
 typealias jl_method_t = Pointer
 typealias jl_method_instance_t = Pointer
 typealias jl_code_instance_t = Pointer
-typealias jl_llvmf_dump_t = Pointer
 
 /**
  * Equivalent to [JL_NOTSAFEPOINT](https://docs.julialang.org/en/v1/devdocs/gc-sa/#JL_NOTSAFEPOINT)
@@ -227,11 +225,6 @@ interface Julia {
 
     fun jl_method_compiled(@PropagatesRoot mi: jl_method_instance_t, world: Long): jl_code_instance_t
 
-    fun jl_fptr_args(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-    fun jl_fptr_const_return(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-    fun jl_fptr_sparam(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-    fun jl_fptr_interpret_call(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-
     fun jl_get_backtrace(): jl_value_t
 
     @NotSafePoint fun jl_lock_value(v: jl_value_t)
@@ -361,8 +354,6 @@ interface Julia {
     @GloballyRooted fun jl_nothing(): jl_value_t
 
     fun jl_n_threads(): Int
-
-    fun jl_gc_running(): Int
 
     /*
      * Custom helper methods

@@ -34,8 +34,6 @@ abstract class JuliaImplBase: Julia {
 
     private var m_jl_n_threads: Int = 0
 
-    private lateinit var m_jl_gc_running: Pointer
-
     override fun main_module(): jl_module_t = m_jl_main_module
     override fun base_module(): jl_module_t = m_jl_base_module
     override fun core_module(): jl_module_t = m_jl_core_module
@@ -47,8 +45,6 @@ abstract class JuliaImplBase: Julia {
     override fun jl_nothing(): jl_value_t = m_jl_nothing
 
     override fun jl_n_threads(): Int = m_jl_n_threads  // Constant as it should not change after 'jl_init'
-
-    override fun jl_gc_running(): Int = m_jl_gc_running.getInt(0)
 
     /*
      * Utilities
@@ -137,7 +133,6 @@ abstract class JuliaImplBase: Julia {
         m_jl_false = getGlobalVar("jl_false")
         m_jl_nothing = getGlobalVar("jl_nothing")
         m_jl_n_threads = lib_julia.getGlobalVariableAddress("jl_n_threads").getInt(0L)
-        m_jl_gc_running = lib_internal.getGlobalVariableAddress("jl_gc_running")
 
         varargsImpl = Native.load(JuliaPath.LIB_JULIA, getVarargsImplClass())
 
