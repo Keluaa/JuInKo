@@ -27,7 +27,9 @@ class JuliaPath {
             val options = arrayOf(
                 ::pathFromProperties,
                 ::pathFromBinDir,
+                ::pathFromLibDir,
                 ::pathFromJulia,
+                ::pathFromJuliaLib,
                 ::pathFromCmdLine
             )
 
@@ -47,15 +49,23 @@ class JuliaPath {
 
         private fun pathFromProperties(): String? = System.getProperty("juinko.julia_path", null)
 
-        private fun pathFromBinDir(): String? {
-            val jl_bindir = System.getenv("JULIA_BINDIR")
+        private fun pathFromBinDir(): String? = System.getenv("JULIA_BINDIR")
+
+        private fun pathFromLibDir(): String? {
+            val jl_bindir = pathFromBinDir()
             if (jl_bindir != null) return Paths.get(jl_bindir, "../lib").toString()
             return null
         }
 
         private fun pathFromJulia(): String? {
             val jl_exe = System.getenv("JULIA")
-            if (jl_exe != null) return Paths.get(Paths.get(jl_exe).parent.toString(), "../lib").toString()
+            if (jl_exe != null) return Paths.get(jl_exe).parent.toString()
+            return null
+        }
+
+        private fun pathFromJuliaLib(): String? {
+            val jl_exe_dir = pathFromJulia()
+            if (jl_exe_dir != null) return Paths.get(jl_exe_dir, "../lib").toString()
             return null
         }
 
@@ -102,14 +112,25 @@ class JuliaPath {
 
             val possibleLibJulia = dir.list { _: File, s: String -> s.startsWith(libJulia) } ?: emptyArray()
             var possibleLibJuliaInternal = dir.list { _: File, s: String -> s.startsWith(libJuliaInternal) } ?: emptyArray()
+
+            possibleLibJulia.forEachIndexed { i, s -> possibleLibJulia[i] = File(dir.absolutePath, s).absolutePath }
+            possibleLibJuliaInternal.forEachIndexed { i, s -> possibleLibJuliaInternal[i] = File(dir.absolutePath, s).absolutePath }
+
             if (possibleLibJuliaInternal.isEmpty() && subDir.isDirectory) {
                 // Try in the 'lib/julia' folder
                 possibleLibJuliaInternal = subDir.list { _: File, s: String -> s.startsWith(libJuliaInternal) } ?: emptyArray()
+                possibleLibJuliaInternal.forEachIndexed { i, s -> possibleLibJuliaInternal[i] = File(subDir.absolutePath, s).absolutePath }
             }
 
             // Make sure to always load the same library each time
             possibleLibJulia.sort()
             possibleLibJuliaInternal.sort()
+
+            if (Platform.isWindows()) {
+                // Ignore static libraries
+                possibleLibJulia.filter { l -> !l.endsWith(".a") }
+                possibleLibJuliaInternal.filter { l -> !l.endsWith(".a") }
+            }
 
             if (possibleLibJulia.isNotEmpty()) {
                 val foundLibJulia = possibleLibJulia.first()
@@ -120,6 +141,8 @@ class JuliaPath {
                 }
 
                 val foundLibJuliaInternal = possibleLibJuliaInternal.first()
+
+                println("found: '$foundLibJulia' and '$foundLibJuliaInternal'")
 
                 LIB_JULIA = foundLibJulia
                 LIB_JULIA_INTERNAL = foundLibJuliaInternal
