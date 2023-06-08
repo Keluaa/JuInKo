@@ -90,6 +90,8 @@ class JuliaPath {
             val dir = File(path)
             if (!dir.isDirectory) return false
 
+            val subDir = File(path, "julia")
+
             var libJulia = System.mapLibraryName(JULIA_LIB_NAME)
             var libJuliaInternal = System.mapLibraryName(JULIA_INTERNAL_LIB_NAME)
 
@@ -99,7 +101,11 @@ class JuliaPath {
             }
 
             val possibleLibJulia = dir.list { _: File, s: String -> s.startsWith(libJulia) } ?: emptyArray()
-            val possibleLibJuliaInternal = dir.list { _: File, s: String -> s.startsWith(libJuliaInternal) } ?: emptyArray()
+            var possibleLibJuliaInternal = dir.list { _: File, s: String -> s.startsWith(libJuliaInternal) } ?: emptyArray()
+            if (possibleLibJuliaInternal.isEmpty() && subDir.isDirectory) {
+                // Try in the 'lib/julia' folder
+                possibleLibJuliaInternal = subDir.list { _: File, s: String -> s.startsWith(libJuliaInternal) } ?: emptyArray()
+            }
 
             // Make sure to always load the same library each time
             possibleLibJulia.sort()
