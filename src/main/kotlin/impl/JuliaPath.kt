@@ -87,7 +87,8 @@ class JuliaPath {
                 }
                 path = String(process.inputStream.readAllBytes())
             } catch (e: Exception) {
-                LOG.log(Level.WARNING, "Could not get Julia lib dir: '${juliaRunCmd.joinToString(" ")}}' failed with", e)
+                LOG.log(Level.WARNING, "Could not get Julia lib dir: " +
+                        "'${juliaRunCmd.joinToString(" ")}}' failed with", e)
                 return null
             }
 
@@ -136,7 +137,8 @@ class JuliaPath {
                 val foundLibJulia = possibleLibJulia.first()
 
                 if (possibleLibJuliaInternal.isEmpty()) {
-                    LOG.warning("Found 'libjulia' at '$foundLibJulia', but 'libjulia-internal' was not in the same place. Skipping this directory.")
+                    LOG.warning("Found '$libJulia' at '$foundLibJulia', but '$libJuliaInternal' " +
+                                "was not in the same place. Skipping this directory.")
                     return false
                 }
 

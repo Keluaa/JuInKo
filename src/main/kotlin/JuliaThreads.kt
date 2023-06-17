@@ -2,10 +2,10 @@ package com.keluaa.juinko
 
 import com.sun.jna.Callback
 import com.sun.jna.CallbackReference
+import com.sun.jna.Platform
 import com.sun.jna.Pointer
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.reflect.full.companionObjectInstance
-
 
 
 /**
@@ -91,34 +91,70 @@ class JuliaThreads(val jl: Julia) {
 
     companion object {
         private val spawners: MutableMap<String, jl_function_t> = ConcurrentHashMap()
+
+        private val RESERVED_STACK_SIZE = if (Platform.isWindows()) 0 else 4 * 1024  // 4 kiB
+
+        /**
+         * An "override" of `Threads.@spawn` to specify the `reserved_stack` argument of the `Task` constructor.
+         * This argument is the thread's stack size, which doesn't matter on Windows (from my testing) but will segfault
+         * the JVM on Linux with the message:
+         * "JNA: Can't attach native thread to VM for callback: -1 (check stacksize for callbacks)"
+         *
+         * My guess is that the JVM cannot detect the stack size of a Julia thread and assumes that it cannot attach to
+         * it.
+         */
+        private val CUSTOM_TASK_SPAWN = """
+            macro juinko_task_spawn(expr)
+                base_thread_spawn = macroexpand(__module__, :(Threads.@spawn ${'$'}(esc(expr))))
+                # Find the call to the `Base.Threads.Task` constructor
+                task_ctor = base_thread_spawn.args[2].args[2].args[2].args[1].args[2]
+                # Add the secret `reserved_stack` argument to it
+                push!(task_ctor.args, :(${RESERVED_STACK_SIZE}))
+                return base_thread_spawn
+            end
+        """.trimIndent()
     }
 
     private val fetchFunction = lazy { jl.getBaseObj("fetch") }
     private val isTaskDoneFunction = lazy { jl.getBaseObj("istaskdone") }
     private val sleepFunction = lazy { jl.getBaseObj("sleep") }
 
+    private var spawnersInitialized = false
+
+    private fun initSpawners() {
+        if (spawnersInitialized) return
+        System.err.println(CUSTOM_TASK_SPAWN)
+        jl.jl_load_file_string(CUSTOM_TASK_SPAWN, CUSTOM_TASK_SPAWN.length.toLong(),
+            "JuliaThreads.kt::initSpawners", jl.main_module())
+        jl.exceptionCheck()
+        spawnersInitialized = true
+    }
+
     /**
      * Creates a Julia function of the form:
      * ```julia
      * function spawner_<name_hash>(callback, funcArgs...)
-     *     return Threads.@spawn ccall($callback, retType, (argsTypes...), cCallArgs...)
+     *     return Threads.@spawn ccall(callback, retType, (argsTypes...), cCallArgs...)
      * end
      * ```
      * Where `<name_hash>` is the hash code of the `name` of the callback interface.
      *
      * The generated code should be generic enough to accommodate most callbacks needs.
+     *
+     * `Threads.@spawn` is modified to handle some Linux/JVM/Julia interaction.
      */
     private fun createSpawner(name: String, retType: String, argsTypes: String, cCallArgs: String, funcArgs: String): jl_value_t {
+        initSpawners()
         val spawnerFuncArgs = arrayOf("callback", funcArgs)
             .filter { it.isNotEmpty() }
             .joinToString(", ")
-        val callArgs = arrayOf("\$callback", retType, argsTypes, cCallArgs)
+        val callArgs = arrayOf("callback", retType, argsTypes, cCallArgs)
             .filter { it.isNotEmpty() }
             .joinToString(", ")
         val nameHash = name.hashCode().toUInt()
         val spawnerCode = """
             function spawner_$nameHash($spawnerFuncArgs)
-                return Threads.@spawn ccall($callArgs)
+                return @juinko_task_spawn ccall($callArgs)
             end
         """.trimIndent()
         val spawnerFunc = jl.jl_load_file_string(spawnerCode, spawnerCode.length.toLong(),

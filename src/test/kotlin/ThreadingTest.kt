@@ -59,20 +59,10 @@ internal class ThreadingTest: BaseTest() {
 
         val myCallback = JuliaCallbackRetAny {
             val ret = retValue.getAndAdd(1)
-            jl.jl_box_int32(ret)
+            return@JuliaCallbackRetAny jl.jl_box_int32(ret)
         }
 
-        val spawnerCode = """
-        function spawner(callback::Ptr{Cvoid})
-            return Threads.@spawn ccall(${'$'}callback, Any, ())
-        end
-        """
-
-        val spawner = jl.jl_eval_string(spawnerCode)
-        if (spawner == null) {
-            jl.exceptionCheck()
-            return
-        }
+        val spawner = JuliaThreads(jl).getOrCreateSpawner<JuliaCallbackRetAny>()
 
         val taskArray = Array<jl_value_t?>(JULIA_THREADS) { null }
         for (i in 0 until JULIA_THREADS) {
@@ -86,16 +76,19 @@ internal class ThreadingTest: BaseTest() {
         val returnedValues = mutableListOf<Int>()
         val expectedValues = mutableListOf<Int>()
         for ((i, task) in taskArray.withIndex()) {
+            expectedValues.add(initialValue + i)
+
             if (task == null)
                 throw Exception("task $i is null")
             val jlValue = jl.jl_call1(fetchFunc, task)
             if (jlValue == null) {
                 println("task $i failed")
                 jl.exceptionCheck()
+                continue
             }
-            val value = jl.jl_unbox_int32(jlValue!!)
+
+            val value = jl.jl_unbox_int32(jlValue)
             returnedValues.add(value)
-            expectedValues.add(initialValue + i)
         }
 
         Assertions.assertTrue(returnedValues.containsAll(expectedValues))
