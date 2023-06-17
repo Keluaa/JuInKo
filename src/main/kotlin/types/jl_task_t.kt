@@ -26,12 +26,12 @@ class jl_task_t(p: Pointer?) : PointerType(p) {
         private val OFFSET_priority:     Long by STRUCT.from("priority", JuliaVersion("1.9.0-alpha1"))
 
         // Hidden properties
-        private val OFFSET_gcstack:      Long by STRUCT.offset("rngState3", 8 * 2 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        private val OFFSET_world_age:    Long by STRUCT.offset("rngState3", 8 * 3 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        private val OFFSET_ptls:         Long by STRUCT.offset("rngState3", 8 * 4 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        private val OFFSET_excstack:     Long by STRUCT.offset("rngState3", 8 * 5 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        private val OFFSET_eh:           Long by STRUCT.offset("rngState3", 8 * 6 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        private val OFFSET_ctx:          Long by STRUCT.offset("rngState3", 8 * 7 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
+        internal val OFFSET_gcstack:     Long by STRUCT.offset("rngState3", 8 * 2 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
+        private  val OFFSET_world_age:   Long by STRUCT.offset("rngState3", 8 * 3 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
+        internal val OFFSET_ptls:        Long by STRUCT.offset("rngState3", 8 * 4 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
+        private  val OFFSET_excstack:    Long by STRUCT.offset("rngState3", 8 * 5 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
+        private  val OFFSET_eh:          Long by STRUCT.offset("rngState3", 8 * 6 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
+        private  val OFFSET_ctx:         Long by STRUCT.offset("rngState3", 8 * 7 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
 
         const val JL_TASK_STATE_RUNNABLE = 0
         const val JL_TASK_STATE_DONE = 1

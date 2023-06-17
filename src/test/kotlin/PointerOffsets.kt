@@ -1,6 +1,8 @@
 package com.keluaa.juinko
 
+import com.keluaa.juinko.impl.JuliaImpl_1_9_0
 import com.keluaa.juinko.types.JuliaOptions
+import com.keluaa.juinko.types.jl_task_t
 import com.sun.jna.Pointer
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
@@ -100,10 +102,10 @@ internal class PointerOffsets: BaseTest() {
         checkAllOffsets(jl.getCoreObj("Task"), com.keluaa.juinko.types.jl_task_t.Companion)
 
         if (JuliaVersion >= JuliaVersion(1, 9, 1)) {
-            // TODO: use the new exported globals to check the pointers. However they are only set AFTER 'jl_init' has been called
-            //    jl_task_gcstack_offset = offsetof(jl_task_t, gcstack);
-            //    jl_task_ptls_offset = offsetof(jl_task_t, ptls);
-            //  https://github.com/JuliaLang/julia/commit/c3d84e42aaf65c4ea7ff390ff0a509da5fd9583d
+            val jl_task_gcstack_offset = (jl as JuliaImpl_1_9_0).lib.getGlobalVariableAddress("jl_task_gcstack_offset").getLong(0)
+            val jl_task_ptls_offset = (jl as JuliaImpl_1_9_0).lib.getGlobalVariableAddress("jl_task_ptls_offset").getLong(0)
+            Assertions.assertEquals(jl_task_gcstack_offset, jl_task_t.Companion.OFFSET_gcstack)
+            Assertions.assertEquals(jl_task_ptls_offset, jl_task_t.Companion.OFFSET_ptls)
         }
 
         val pgcstack = jl.jl_get_pgcstack()
