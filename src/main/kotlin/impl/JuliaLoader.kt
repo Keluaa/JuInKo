@@ -3,6 +3,7 @@ package com.keluaa.juinko.impl
 import com.keluaa.juinko.*
 import com.keluaa.juinko.types.JuliaOptions
 import com.sun.jna.NativeLibrary
+import com.sun.jna.Platform
 import java.util.logging.Logger
 
 class JuliaLoader {
@@ -50,6 +51,13 @@ class JuliaLoader {
             return JuliaOptions.getOptions(LIB_JULIA!!)
         }
 
+        fun setupOptions() {
+            if (!Platform.isWindows()) {
+                // We get a SIGSEGV randomly at shutdown on Linux if this is ON
+                getOptions().handle_signals = false
+            }
+        }
+
         private fun load(init: Boolean) {
             loadLibrary()
 
@@ -66,6 +74,8 @@ class JuliaLoader {
                 }
                 JuliaImpl_1_9_0()
             }
+
+            setupOptions()
 
             INSTANCE!!.initJulia(LIB_JULIA!!, LIB_JULIA_INTERNAL!!)
 
