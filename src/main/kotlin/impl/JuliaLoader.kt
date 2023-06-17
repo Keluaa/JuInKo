@@ -58,6 +58,21 @@ class JuliaLoader {
             }
         }
 
+        fun doChecks() {
+            val copyStacks = (System.getenv("JULIA_COPY_STACKS") ?: "0").toInt()
+            if (copyStacks != 0) {
+                LOG.warning("The environment variable 'JULIA_COPY_STACKS' is not set to 0, " +
+                            "this will most likely lead to segmentation faults on Linux.")
+            }
+
+            val libVersion = JuliaVersion.get()
+            if (JuliaVersion(1, 9, 0) <= libVersion || libVersion < JuliaVersion(1, 9, 2)) {
+                // TODO: check if this warning is correct, if not, also adjust the doc of [Julia.runInJuliaThread]
+                LOG.warning("Julia 1.9.0 and 1.9.1 have unsafe thread adoption mechanism which could " +
+                            "randomly fail. Use preferably Julia 1.9.2 or later.")
+            }
+        }
+
         private fun load(init: Boolean) {
             loadLibrary()
 
@@ -67,15 +82,11 @@ class JuliaLoader {
             } else if (libVersion < JuliaVersion(1, 9, 0)) {
                 JuliaImpl_1_7_2()
             } else {
-                if (libVersion == JuliaVersion(1, 9, 0) || libVersion == JuliaVersion(1, 9, 1)) {
-                    // TODO: check if this warning is correct, if not, also adjust the doc of [Julia.runInJuliaThread]
-                    LOG.warning("Julia 1.9.0 and 1.9.1 have unsafe thread adoption mechanism which could " +
-                            "randomly fail. Use preferably Julia 1.9.2 or later.")
-                }
                 JuliaImpl_1_9_0()
             }
 
             setupOptions()
+            doChecks()
 
             INSTANCE!!.initJulia(LIB_JULIA!!, LIB_JULIA_INTERNAL!!)
 
