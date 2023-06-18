@@ -59,6 +59,9 @@ class JuliaLoader {
         }
 
         fun doChecks() {
+            if (!Platform.is64Bit())
+                throw Exception("JuInKo does not support 32-bit architectures")
+
             val copyStacks = (System.getenv("JULIA_COPY_STACKS") ?: "0").toInt()
             if (copyStacks != 0) {
                 LOG.warning("The environment variable 'JULIA_COPY_STACKS' is not set to 0, " +
@@ -68,6 +71,7 @@ class JuliaLoader {
             val libVersion = JuliaVersion.get()
             if (JuliaVersion(1, 9, 0) <= libVersion || libVersion < JuliaVersion(1, 9, 2)) {
                 // TODO: check if this warning is correct, if not, also adjust the doc of [Julia.runInJuliaThread]
+                //  See https://github.com/JuliaLang/julia/pull/49934 and https://github.com/JuliaLang/julia/pull/50090
                 LOG.warning("Julia 1.9.0 and 1.9.1 have unsafe thread adoption mechanism which could " +
                             "randomly fail. Use preferably Julia 1.9.2 or later.")
             }
@@ -75,6 +79,8 @@ class JuliaLoader {
 
         private fun load(init: Boolean) {
             loadLibrary()
+
+            doChecks()
 
             val libVersion = JuliaVersion.get()
             INSTANCE = if (libVersion < JuliaVersion(1, 7, 2)) {
@@ -86,7 +92,6 @@ class JuliaLoader {
             }
 
             setupOptions()
-            doChecks()
 
             INSTANCE!!.initJulia(LIB_JULIA!!, LIB_JULIA_INTERNAL!!)
 
