@@ -61,6 +61,12 @@ class GCStack(private val jl: Julia, val size: Int) : AutoCloseable {
 
     private fun memIdx(i: Int): Long = ((2 + i) * 8).toLong()
 
+    fun checkPointer(p: Pointer) {
+        val address = Pointer.nativeValue(p)
+        if (address % 8L != 0L)
+            throw Exception("Pointer is not aligned to 8 bytes: $address")
+    }
+
     operator fun get(i: Int): jl_value_t {
         if (head == -1) throw NullPointerException("Cannot access a GC stack after it was closed/JL_GC_POP")
         if (i < 0 || i >= size) throw IndexOutOfBoundsException("Trying to access GC stack object of size $size at index $i")
@@ -70,6 +76,7 @@ class GCStack(private val jl: Julia, val size: Int) : AutoCloseable {
     operator fun set(i: Int, v: jl_value_t): jl_value_t {
         if (head == -1) throw NullPointerException("Cannot write to a GC stack after it was closed/JL_GC_POP")
         if (i < 0 || i >= size) throw IndexOutOfBoundsException("Trying to write to GC stack object of size $size at index $i")
+        checkPointer(v)
         stack.setPointer(memIdx(i), v)
         return v
     }
@@ -85,6 +92,7 @@ class GCStack(private val jl: Julia, val size: Int) : AutoCloseable {
     fun push(value: jl_value_t): GCStack {
         if (head == -1) throw NullPointerException("Cannot push to a GC stack after it was closed/JL_GC_POP")
         if (head == size) throw IndexOutOfBoundsException("Cannot push to a GC stack already full")
+        checkPointer(value)
         stack.setPointer(memIdx(head), value)
         head++
         return this
@@ -94,6 +102,7 @@ class GCStack(private val jl: Julia, val size: Int) : AutoCloseable {
         if (head == -1) throw NullPointerException("Cannot push to a GC stack after it was closed/JL_GC_POP")
         if (head + values.size > size) throw IndexOutOfBoundsException("Too many values to push")
         for (value in values) {
+            checkPointer(value)
             stack.setPointer(memIdx(head), value)
             head++
         }
