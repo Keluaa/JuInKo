@@ -1,8 +1,7 @@
 package com.keluaa.juinko
 
-import com.keluaa.juinko.impl.JuliaImpl_1_9_0
-import com.keluaa.juinko.types.JuliaOptions
-import com.keluaa.juinko.types.jl_task_t
+import com.keluaa.juinko.impl.JuliaImplBase
+import com.keluaa.juinko.types.*
 import com.sun.jna.Pointer
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
@@ -20,7 +19,7 @@ internal class PointerOffsets: BaseTest() {
         fun setUp() {
             initJulia()
             ensureImplConstantsNotInitialized()
-            // Note: jl.exceptionCheck, jl.permMem and jl.errorBuffer are uninitialized and should not be used here
+            // Note: jl.exceptionCheck, jl.permMem and jl.errorBuffer use uninitialized variables and should not be used here
         }
     }
 
@@ -89,21 +88,21 @@ internal class PointerOffsets: BaseTest() {
 
     @Test
     fun jl_typename_t() {
-        checkAllOffsets(jl.getCoreObj("TypeName"), com.keluaa.juinko.types.jl_typename_t.Companion)
+        checkAllOffsets(jl.getCoreObj("TypeName"), jl_typename_t.Companion)
     }
 
     @Test
     fun jl_datatype_t() {
-        checkAllOffsets(jl.getCoreObj("DataType"), com.keluaa.juinko.types.jl_datatype_t.Companion)
+        checkAllOffsets(jl.getCoreObj("DataType"), jl_datatype_t.Companion)
     }
 
     @Test
     fun jl_task_t() {
-        checkAllOffsets(jl.getCoreObj("Task"), com.keluaa.juinko.types.jl_task_t.Companion)
+        checkAllOffsets(jl.getCoreObj("Task"), jl_task_t.Companion)
 
         if (JuliaVersion >= JuliaVersion(1, 9, 1)) {
-            val jl_task_gcstack_offset = (jl as JuliaImpl_1_9_0).lib.getGlobalVariableAddress("jl_task_gcstack_offset").getLong(0)
-            val jl_task_ptls_offset = (jl as JuliaImpl_1_9_0).lib.getGlobalVariableAddress("jl_task_ptls_offset").getLong(0)
+            val jl_task_gcstack_offset = (jl as JuliaImplBase).getGlobal<Int>("jl_task_gcstack_offset").toLong()
+            val jl_task_ptls_offset    = (jl as JuliaImplBase).getGlobal<Int>("jl_task_ptls_offset").toLong()
             Assertions.assertEquals(jl_task_gcstack_offset, jl_task_t.Companion.OFFSET_gcstack)
             Assertions.assertEquals(jl_task_ptls_offset, jl_task_t.Companion.OFFSET_ptls)
         }
