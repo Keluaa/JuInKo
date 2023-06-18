@@ -78,7 +78,7 @@ class JuliaPath {
             var path: String
             try {
                 val process = Runtime.getRuntime().exec(juliaRunCmd)
-                if (!process.waitFor(5, TimeUnit.SECONDS)) {
+                if (!process.waitFor(30, TimeUnit.SECONDS)) {
                     process.destroy()
                     throw Exception("Timeout")
                 }
