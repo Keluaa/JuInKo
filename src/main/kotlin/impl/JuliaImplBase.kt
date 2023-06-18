@@ -33,7 +33,9 @@ abstract class JuliaImplBase: Julia {
     private lateinit var m_jl_false: jl_module_t
     private lateinit var m_jl_nothing: jl_module_t
 
+    private var m_jl_n_threadpools: Int = 1
     private var m_jl_n_threads: Int = 0
+    private var m_jl_n_threads_per_pool: Array<Int> = arrayOf(0)
 
     override fun main_module(): jl_module_t = m_jl_main_module
     override fun base_module(): jl_module_t = m_jl_base_module
@@ -45,7 +47,9 @@ abstract class JuliaImplBase: Julia {
     override fun jl_false(): jl_value_t = m_jl_false
     override fun jl_nothing(): jl_value_t = m_jl_nothing
 
-    override fun jl_n_threads(): Int = m_jl_n_threads  // Constant as it should not change after 'jl_init'
+    override fun jl_n_threadpools(): Int = m_jl_n_threadpools
+    override fun jl_n_threads(): Int = m_jl_n_threads
+    override fun jl_n_threads_per_pool(): Array<Int> = m_jl_n_threads_per_pool
 
     /*
      * Utilities
@@ -154,6 +158,14 @@ abstract class JuliaImplBase: Julia {
         m_jl_false = getGlobalVar("jl_false")
         m_jl_nothing = getGlobalVar("jl_nothing")
         m_jl_n_threads = getGlobal<Int>("jl_n_threads")
+
+        if (JuliaVersion >= JuliaVersion(1, 9)) {
+            m_jl_n_threadpools = getGlobal<Int>("jl_n_threadpools")
+            m_jl_n_threads = getGlobal<Int>("jl_n_threads")
+
+            val n_threads_per_pool = getGlobal<Pointer>("jl_n_threads_per_pool")
+            m_jl_n_threads_per_pool = n_threads_per_pool.getIntArray(0, m_jl_n_threadpools).toTypedArray()
+        }
 
         varargsImpl = Native.load(JuliaPath.LIB_JULIA, getVarargsImplClass())
 

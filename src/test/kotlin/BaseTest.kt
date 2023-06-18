@@ -33,8 +33,8 @@ open class BaseTest {
         }
 
         fun ensureJuliaHasThreads() {
-            if (jl.jl_n_threads() != JULIA_THREADS)
-                throw RuntimeException("Tests expect $JULIA_THREADS Julia threads, got: ${jl.jl_n_threads()}")
+            if (jl.threadsCount() != JULIA_THREADS)
+                throw RuntimeException("Tests expect $JULIA_THREADS Julia threads, got: ${jl.threadsCount()}")
         }
     }
 }

@@ -59,6 +59,18 @@ annotation class RootedArgument
 
 
 interface Julia {
+
+    companion object {
+        // Modes for 'jl_gc_collect'
+        const val JL_GC_AUTO: Int = 0         // use heuristics to determine the collection type
+        const val JL_GC_FULL: Int = 1         // force a full collection
+        const val JL_GC_INCREMENTAL: Int = 2  // force an incremental collection
+
+        // Thread pools
+        const val JL_INTERACTIVE_THREAD_POOL: Int = 0
+        const val JL_DEFAULT_THREAD_POOL: Int = 1
+    }
+
     fun jl_init()
     fun jl_is_initialized(): Int
 
@@ -131,13 +143,6 @@ interface Julia {
 
     fun jl_gc_enable(on: Int)
     fun jl_gc_is_enabled(): Int
-
-    companion object {
-        // Modes for 'jl_gc_collect'
-        const val JL_GC_AUTO: Int = 0         // use heuristics to determine the collection type
-        const val JL_GC_FULL: Int = 1         // force a full collection
-        const val JL_GC_INCREMENTAL: Int = 2  // force an incremental collection
-    }
 
     fun jl_gc_collect(mode: Int)
     fun jl_gc_safepoint()
@@ -353,7 +358,9 @@ interface Julia {
     @GloballyRooted fun jl_false(): jl_value_t
     @GloballyRooted fun jl_nothing(): jl_value_t
 
+    fun jl_n_threadpools(): Int
     fun jl_n_threads(): Int
+    fun jl_n_threads_per_pool(): Array<Int>
 
     /*
      * Custom helper methods
@@ -386,6 +393,16 @@ interface Julia {
     fun assertInJuliaThread() {
         if (!inJuliaThread())
             throw NotInJuliaThreadException()
+    }
+
+    fun threadsCount(pool: Int = JL_DEFAULT_THREAD_POOL): Int {
+        return if (JuliaVersion < JuliaVersion(1, 9)) {
+            if (pool != JL_DEFAULT_THREAD_POOL)
+                throw JuliaException("There is only one default thread pool before 1.9")
+            jl_n_threads()
+        } else {
+            jl_n_threads_per_pool()[pool]
+        }
     }
 
     /**
