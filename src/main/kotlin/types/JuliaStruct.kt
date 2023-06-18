@@ -1,6 +1,8 @@
 package com.keluaa.juinko.types
 
 import com.keluaa.juinko.*
+import kotlin.reflect.KProperty0
+import kotlin.reflect.jvm.isAccessible
 
 
 class JuliaStruct(private val structName: String, place: Location) {
@@ -52,11 +54,15 @@ class JuliaStruct(private val structName: String, place: Location) {
         fields[name] ?: throw NoSuchFieldException("Julia type $structName doesn't have a field named '$name'")
     }
 
-    fun field(p: (Julia, jl_datatype_t) -> Long): Lazy<Long> = lazy { p(jl, datatype) }
-
     fun offset(name: String, offset: Int): Lazy<Long> = lazy {
         val other = fields[name] ?: throw NoSuchFieldException("Julia type $structName doesn't have a field named '$name'")
         other + offset
+    }
+
+    fun offset(other: KProperty0<*>, offset: Int): Lazy<Long> = lazy {
+        other.isAccessible = true
+        val otherVal = (other.getDelegate() as Lazy<*>).value
+        (otherVal as Long) + offset
     }
 
     fun before(name: String, version: JuliaVersion): Lazy<Long> = lazy {
@@ -86,4 +92,6 @@ class JuliaStruct(private val structName: String, place: Location) {
         else
             throw VersionException("<=", version, "Type $structName has the field '$name' until version $version")
     }
+
+    fun custom(f: (Julia, jl_datatype_t) -> Long): Lazy<Long> = lazy { f(jl, datatype) }
 }

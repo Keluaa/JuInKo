@@ -1,6 +1,7 @@
 package com.keluaa.juinko.types
 
 import com.keluaa.juinko.*
+import com.keluaa.juinko.impl.JuliaImplBase
 import com.sun.jna.Pointer
 import com.sun.jna.PointerType
 
@@ -9,6 +10,8 @@ class jl_task_t(p: Pointer?) : PointerType(p) {
     companion object {
         private val STRUCT = JuliaStruct("Task", JuliaStruct.Location.CORE)
 
+        private val RNG_SIZE:            Long by lazy { JuliaVersion.from("1.10.0", { 5 }, { 4 }) }
+
         private val OFFSET_next:         Long by STRUCT.field("next")
         private val OFFSET_queue:        Long by STRUCT.field("queue")
         private val OFFSET_storage:      Long by STRUCT.field("storage")
@@ -16,22 +19,26 @@ class jl_task_t(p: Pointer?) : PointerType(p) {
         private val OFFSET_result:       Long by STRUCT.field("result")
         private val OFFSET_logstate:     Long by STRUCT.field("logstate")
         private val OFFSET_code:         Long by STRUCT.field("code")
-        private val OFFSET_rngState0:    Long by STRUCT.field("rngState0")
-        private val OFFSET_rngState1:    Long by STRUCT.field("rngState1")
-        private val OFFSET_rngState2:    Long by STRUCT.field("rngState2")
-        private val OFFSET_rngState3:    Long by STRUCT.field("rngState3")
+        private val OFFSET_rngState:     Long by lazy { STRUCT.field(JuliaVersion.from("1.10", { "rngState" }, { "rngState0" })).value }
         private val OFFSET__state:       Long by STRUCT.field("_state")
         private val OFFSET_sticky:       Long by STRUCT.field("sticky")
         private val OFFSET__isexception: Long by STRUCT.field("_isexception")
-        private val OFFSET_priority:     Long by STRUCT.from("priority", JuliaVersion("1.9.0-alpha1"))
+        private val OFFSET_priority:     Long by STRUCT.from("priority", JuliaVersion("1.9.0"))
 
         // Hidden properties
-        internal val OFFSET_gcstack:     Long by STRUCT.offset("rngState3", 8 * 2 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        private  val OFFSET_world_age:   Long by STRUCT.offset("rngState3", 8 * 3 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        internal val OFFSET_ptls:        Long by STRUCT.offset("rngState3", 8 * 4 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        private  val OFFSET_excstack:    Long by STRUCT.offset("rngState3", 8 * 5 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        private  val OFFSET_eh:          Long by STRUCT.offset("rngState3", 8 * 6 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
-        private  val OFFSET_ctx:         Long by STRUCT.offset("rngState3", 8 * 7 + JuliaVersion.from("1.9.0", { 8 }, { 0 }))
+        internal val OFFSET_gcstack:    Long by STRUCT.custom { jl, _ ->
+            if (JuliaVersion < JuliaVersion(1, 9, 1)) {
+                OFFSET_rngState + 8 * (RNG_SIZE + 1) + JuliaVersion.from("1.9.0", { 8 }, { 0 })
+            } else {
+                // Future-proof approach made possible in 1.9.1
+                (jl as JuliaImplBase).lib.getGlobalVariableAddress("jl_task_gcstack_offset").getLong(0)
+            }
+        }
+        private  val OFFSET_world_age:  Long by STRUCT.offset(::OFFSET_gcstack, 8 * 1)
+        internal val OFFSET_ptls:       Long by STRUCT.offset(::OFFSET_gcstack, 8 * 2)
+        private  val OFFSET_excstack:   Long by STRUCT.offset(::OFFSET_gcstack, 8 * 3)
+        private  val OFFSET_eh:         Long by STRUCT.offset(::OFFSET_gcstack, 8 * 4)
+        private  val OFFSET_ctx:        Long by STRUCT.offset(::OFFSET_gcstack, 8 * 5)
 
         const val JL_TASK_STATE_RUNNABLE = 0
         const val JL_TASK_STATE_DONE = 1
@@ -64,7 +71,7 @@ class jl_task_t(p: Pointer?) : PointerType(p) {
         get() = pointer.getPointer(OFFSET_code)
 
     val rngState: Pointer
-        get() = pointer.share(OFFSET_rngState0, 4 * 8)
+        get() = pointer.share(OFFSET_rngState, RNG_SIZE * 8)
 
     val state: Byte
         get() = pointer.getByte(OFFSET__state)
