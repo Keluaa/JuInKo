@@ -35,7 +35,7 @@ class GlobalMemory(private val jl: Julia) {
         val dictName = jl.jl_symbol("refs_" + hashCode())
 
         // refs_<hash> = IdDict()
-        val binding = jl.jl_get_binding_wr(jl.main_module(), dictName, 1)!!
+        val binding = jl.jl_get_binding_wr(jl.jl_main_module(), dictName, 1)!!
         refs_dict = jl.jl_call0(dictType)!!
         jl.jl_checked_assignment(binding, refs_dict)
         jl.exceptionCheck()

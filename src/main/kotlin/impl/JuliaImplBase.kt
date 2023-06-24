@@ -37,9 +37,9 @@ abstract class JuliaImplBase: Julia {
     private var m_jl_n_threads: Int = 0
     private var m_jl_n_threads_per_pool: Array<Int> = arrayOf(0)
 
-    override fun main_module(): jl_module_t = m_jl_main_module
-    override fun base_module(): jl_module_t = m_jl_base_module
-    override fun core_module(): jl_module_t = m_jl_core_module
+    override fun jl_main_module(): jl_module_t = m_jl_main_module
+    override fun jl_base_module(): jl_module_t = m_jl_base_module
+    override fun jl_core_module(): jl_module_t = m_jl_core_module
 
     override fun jl_emptysvec(): jl_svec_t = m_jl_emptysvec
     override fun jl_emptytuple(): jl_value_t = m_jl_emptytuple

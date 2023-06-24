@@ -348,9 +348,9 @@ interface Julia {
      * Singletons/Global vars
      */
 
-    @GloballyRooted fun main_module(): jl_module_t
-    @GloballyRooted fun base_module(): jl_module_t
-    @GloballyRooted fun core_module(): jl_module_t
+    @GloballyRooted fun jl_main_module(): jl_module_t
+    @GloballyRooted fun jl_base_module(): jl_module_t
+    @GloballyRooted fun jl_core_module(): jl_module_t
 
     @GloballyRooted fun jl_emptysvec(): jl_svec_t
     @GloballyRooted fun jl_emptytuple(): jl_value_t
