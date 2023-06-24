@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIf
 
 internal class ExceptionsTest: BaseTest() {
 
@@ -79,6 +80,9 @@ internal class ExceptionsTest: BaseTest() {
             return abracadabra()
         end
         """
+
+        @JvmStatic
+        fun if_before_1_10() = JuliaVersion < JuliaVersion(1, 10)
     }
 
     fun handleReturnValue(ret: jl_value_t, errorBuffer: IOBuffer): jl_value_t {
@@ -89,19 +93,38 @@ internal class ExceptionsTest: BaseTest() {
 
     @Test
     fun simpleError() {
-        jl.jl_eval_string(EXCEPTION_HANDLER_SOURCE)
-        val callf1 = jl.jl_eval_string(SIMPLE_ERROR_WITH_BACKTRACE)!!
-        jl.jl_call1(callf1, jl.jl_stdout_obj())
-        Assertions.assertNull(jl.jl_exception_occurred())
+        GCStack(jl, 1).use { stack ->
+            val buffer = IOBuffer(jl)
+            stack[0] = buffer.pointer
+
+            jl.jl_eval_string(EXCEPTION_HANDLER_SOURCE)
+            jl.exceptionCheck()
+
+            var callf1 = jl.jl_eval_string(SIMPLE_ERROR_WITH_BACKTRACE)
+            jl.exceptionCheck()
+            callf1 = callf1!!
+
+            jl.jl_call1(callf1, buffer.pointer)
+            Assertions.assertNull(jl.jl_exception_occurred())
+
+            val str = buffer.getStringAndClear()
+            println(str)
+        }
     }
 
     @Test
     fun exceptionChaining() {
         jl.jl_eval_string(EXCEPTION_HANDLER_SOURCE)
-        val callf1 = jl.jl_eval_string(SIMPLE_ERROR_WITH_BACKTRACE)!!
+        jl.exceptionCheck()
 
-        val ret = jl.jl_call1(callf1, jl.errorBuffer().pointer)!!
-        Assertions.assertNull(jl.jl_exception_occurred())
+        var callf1 = jl.jl_eval_string(SIMPLE_ERROR_WITH_BACKTRACE)
+        jl.exceptionCheck()
+        callf1 = callf1!!
+
+        var ret = jl.jl_call1(callf1, jl.errorBuffer().pointer)
+        jl.exceptionCheck()
+        ret = ret!!
+
         Assertions.assertTrue(jl.isNothing(ret))
         Assertions.assertNotEquals(0, jl.errorBuffer().size)
 
@@ -114,10 +137,16 @@ internal class ExceptionsTest: BaseTest() {
     @Test
     fun nestedExceptions() {
         jl.jl_eval_string(EXCEPTION_HANDLER_SOURCE)
-        val callff1 = jl.jl_eval_string(NESTED_ERRORS_WITH_BACKTRACE)!!
+        jl.exceptionCheck()
 
-        val ret = jl.jl_call1(callff1, jl.errorBuffer().pointer)!!
-        Assertions.assertNull(jl.jl_exception_occurred())
+        var callff1 = jl.jl_eval_string(NESTED_ERRORS_WITH_BACKTRACE)
+        jl.exceptionCheck()
+        callff1 = callff1!!
+
+        var ret = jl.jl_call1(callff1, jl.errorBuffer().pointer)
+        jl.exceptionCheck()
+        ret = ret!!
+
         Assertions.assertTrue(jl.isNothing(ret))
         Assertions.assertNotEquals(0, jl.errorBuffer().size)
 
@@ -132,9 +161,17 @@ internal class ExceptionsTest: BaseTest() {
         // TODO: test jl_load_file_string to see if we can put the correct file name in the backtraces
         // TODO: BUT also make jl_load_file_string throw an error to see if we can handle it somewhat
         jl.jl_eval_string(EXCEPTION_HANDLER_SOURCE)
-        val callff1 = jl.jl_load_file_string(NESTED_ERRORS_WITH_BACKTRACE, NESTED_ERRORS_WITH_BACKTRACE.length.toLong(),
-            "ExceptionsTest.kt::NESTED_ERRORS_WITH_BACKTRACE", jl.main_module())!!
-        val ret = jl.jl_call1(callff1, jl.errorBuffer().pointer)!!
+        jl.exceptionCheck()
+
+        var callff1 = jl.jl_load_file_string(NESTED_ERRORS_WITH_BACKTRACE, NESTED_ERRORS_WITH_BACKTRACE.length.toLong(),
+            "ExceptionsTest.kt::NESTED_ERRORS_WITH_BACKTRACE", jl.main_module())
+        jl.exceptionCheck()
+        callff1 = callff1!!
+
+        var ret = jl.jl_call1(callff1, jl.errorBuffer().pointer)
+        jl.exceptionCheck()
+        ret = ret!!
+
         val exception = Assertions.assertThrows(JuliaException::class.java) {
             handleReturnValue(ret, jl.errorBuffer())
         }
@@ -145,6 +182,7 @@ internal class ExceptionsTest: BaseTest() {
     @Disabled
     fun jl_load_file_string_error() {
         jl.jl_eval_string(EXCEPTION_HANDLER_SOURCE)
+        jl.exceptionCheck()
 
         val try_catch_delegate = """
             struct FunctionCall{Ret, Args}
@@ -160,13 +198,14 @@ internal class ExceptionsTest: BaseTest() {
             end
         """.trimIndent()
 
-        val callff1 = jl.jl_load_file_string(WRONG_CODE, WRONG_CODE.length.toLong(),
+        var callff1 = jl.jl_load_file_string(WRONG_CODE, WRONG_CODE.length.toLong(),
             "ExceptionsTest.kt::WRONG_CODE", jl.main_module())
 
         // TODO
     }
 
     @Test
+    @EnabledIf("if_before_1_10")
     fun parsingException() {
         jl.jl_eval_string(WRONG_CODE)
         val exception = Assertions.assertThrows(JuliaException::class.java) {
@@ -178,8 +217,9 @@ internal class ExceptionsTest: BaseTest() {
     @Test
     fun loadingException() {
         // TODO: call a non-existing function
-        val func = jl.jl_eval_string(UNKNOWN_FUNCTION)!!
-        Assertions.assertNull(jl.jl_exception_occurred())
+        var func = jl.jl_eval_string(UNKNOWN_FUNCTION)
+        jl.exceptionCheck()
+        func = func!!
 
         jl.jl_call0(func)
         val exception = Assertions.assertThrows(JuliaException::class.java) {

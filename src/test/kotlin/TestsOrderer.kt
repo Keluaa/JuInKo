@@ -12,6 +12,7 @@ class TestsOrderer : ClassOrderer {
             JuliaImplTest::class.simpleName,
             StringsTest::class.simpleName,
             ArrayTest::class.simpleName,
+            BufferTest::class.simpleName,
             ExceptionsTest::class.simpleName,
             GarbageCollectorTest::class.simpleName,
             GlobalMemoryTest::class.simpleName,
@@ -20,6 +21,10 @@ class TestsOrderer : ClassOrderer {
     }
 
     override fun orderClasses(context: ClassOrdererContext) {
-        context.classDescriptors.sortBy { ORDER.indexOf(it.displayName) }
+        context.classDescriptors.sortBy {
+            val idx = ORDER.indexOf(it.displayName)
+            if (idx == -1) throw NoSuchElementException(it.displayName)
+            idx
+        }
     }
 }

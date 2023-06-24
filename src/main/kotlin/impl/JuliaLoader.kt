@@ -3,6 +3,7 @@ package com.keluaa.juinko.impl
 import com.keluaa.juinko.*
 import com.keluaa.juinko.types.JuliaOptions
 import com.sun.jna.NativeLibrary
+import com.sun.jna.Platform
 import java.util.logging.Logger
 
 class JuliaLoader {
@@ -14,7 +15,6 @@ class JuliaLoader {
         private var INSTANCE: JuliaImplBase? = null
 
         fun isLibJuliaLoaded() = LIB_JULIA != null
-        fun isJuliaLoaded() = INSTANCE != null
 
         private fun checkStringEncoding() {
             val encoding = System.getProperty("jna.encoding", null)
@@ -34,14 +34,15 @@ class JuliaLoader {
             //  to be reworked, as well as all classes depending on it to initialize static fields.
 
             checkStringEncoding()
-            LIB_JULIA = NativeLibrary.getInstance(JuliaPath.JULIA_BIN_PATH)
+
+            LIB_JULIA = NativeLibrary.getInstance(JuliaPath.LIB_JULIA)
             JuliaVersion.setJuliaVersion(LIB_JULIA!!)
             if (JuliaVersion < JuliaVersion(1, 7))
                 throw VersionException("Julia versions before 1.7 are not supported")
 
-            LIB_JULIA_INTERNAL = NativeLibrary.getInstance(JuliaPath.JULIA_INTERNAL_BIN_PATH)
+            LIB_JULIA_INTERNAL = NativeLibrary.getInstance(JuliaPath.LIB_JULIA_INTERNAL)
 
-            LOG.info("Loading Julia version ${JuliaVersion.get()} from lib at ${JuliaPath.JULIA_BIN_PATH}")
+            LOG.info("Loading Julia version ${JuliaVersion.get()} from lib at ${LIB_JULIA!!.file}")
         }
 
         fun getOptions(): JuliaOptions {
@@ -50,8 +51,36 @@ class JuliaLoader {
             return JuliaOptions.getOptions(LIB_JULIA!!)
         }
 
+        fun setupOptions() {
+            if (!Platform.isWindows()) {
+                // We get a SIGSEGV randomly at shutdown on Linux if this is ON
+                getOptions().handle_signals = false
+            }
+        }
+
+        fun doChecks() {
+            if (!Platform.is64Bit())
+                throw Exception("JuInKo does not support 32-bit architectures")
+
+            val copyStacks = (System.getenv("JULIA_COPY_STACKS") ?: "0").toInt()
+            if (copyStacks != 0) {
+                LOG.warning("The environment variable 'JULIA_COPY_STACKS' is not set to 0, " +
+                            "this will most likely lead to segmentation faults on Linux.")
+            }
+
+            val libVersion = JuliaVersion.get()
+            if (JuliaVersion(1, 9, 0) <= libVersion || libVersion < JuliaVersion(1, 9, 2)) {
+                // TODO: check if this warning is correct, if not, also adjust the doc of [Julia.runInJuliaThread]
+                //  See https://github.com/JuliaLang/julia/pull/49934 and https://github.com/JuliaLang/julia/pull/50090
+                LOG.warning("Julia 1.9.0 and 1.9.1 have unsafe thread adoption mechanism which could " +
+                            "randomly fail. Use preferably Julia 1.9.2 or later.")
+            }
+        }
+
         private fun load(init: Boolean) {
             loadLibrary()
+
+            doChecks()
 
             val libVersion = JuliaVersion.get()
             INSTANCE = if (libVersion < JuliaVersion(1, 7, 2)) {
@@ -59,13 +88,10 @@ class JuliaLoader {
             } else if (libVersion < JuliaVersion(1, 9, 0)) {
                 JuliaImpl_1_7_2()
             } else {
-                if (libVersion == JuliaVersion(1, 9, 0) || libVersion == JuliaVersion(1, 9, 1)) {
-                    // TODO: check if this warning is correct, if not, also adjust the doc of [Julia.runInJuliaThread]
-                    LOG.warning("Julia 1.9.0 and 1.9.1 have unsafe thread adoption mechanism which could " +
-                            "randomly fail. Use preferably Julia 1.9.2 or later.")
-                }
                 JuliaImpl_1_9_0()
             }
+
+            setupOptions()
 
             INSTANCE!!.initJulia(LIB_JULIA!!, LIB_JULIA_INTERNAL!!)
 

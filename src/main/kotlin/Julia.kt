@@ -21,14 +21,12 @@ typealias jl_svec_t = Pointer
 typealias jl_tupletype_t = Pointer
 typealias jl_datatype_ptr = Pointer  /* jl_datatype_t, but as a Pointer object */
 typealias jl_methtable_t = Pointer
-typealias jl_callptr_t = Pointer
 typealias JL_STREAM = Pointer  /* JL_STREAM, or 'struct uv_stream_s*'. NOT A 'jl_value_t*' !! */
 
 /* Internal Julia types */
 typealias jl_method_t = Pointer
 typealias jl_method_instance_t = Pointer
 typealias jl_code_instance_t = Pointer
-typealias jl_llvmf_dump_t = Pointer
 
 /**
  * Equivalent to [JL_NOTSAFEPOINT](https://docs.julialang.org/en/v1/devdocs/gc-sa/#JL_NOTSAFEPOINT)
@@ -61,6 +59,18 @@ annotation class RootedArgument
 
 
 interface Julia {
+
+    companion object {
+        // Modes for 'jl_gc_collect'
+        const val JL_GC_AUTO: Int = 0         // use heuristics to determine the collection type
+        const val JL_GC_FULL: Int = 1         // force a full collection
+        const val JL_GC_INCREMENTAL: Int = 2  // force an incremental collection
+
+        // Thread pools
+        const val JL_INTERACTIVE_THREAD_POOL: Int = 0
+        const val JL_DEFAULT_THREAD_POOL: Int = 1
+    }
+
     fun jl_init()
     fun jl_is_initialized(): Int
 
@@ -133,13 +143,6 @@ interface Julia {
 
     fun jl_gc_enable(on: Int)
     fun jl_gc_is_enabled(): Int
-
-    companion object {
-        // Modes for 'jl_gc_collect'
-        const val JL_GC_AUTO: Int = 0         // use heuristics to determine the collection type
-        const val JL_GC_FULL: Int = 1         // force a full collection
-        const val JL_GC_INCREMENTAL: Int = 2  // force an incremental collection
-    }
 
     fun jl_gc_collect(mode: Int)
     fun jl_gc_safepoint()
@@ -226,11 +229,6 @@ interface Julia {
     fun jl_compile_method_internal(@PropagatesRoot meth: jl_method_instance_t, world: Long): jl_code_instance_t
 
     fun jl_method_compiled(@PropagatesRoot mi: jl_method_instance_t, world: Long): jl_code_instance_t
-
-    fun jl_fptr_args(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-    fun jl_fptr_const_return(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-    fun jl_fptr_sparam(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
-    fun jl_fptr_interpret_call(f: jl_function_t, args: jl_value_t_array, nargs: Int, code: jl_code_instance_t): jl_value_t
 
     fun jl_get_backtrace(): jl_value_t
 
@@ -360,9 +358,9 @@ interface Julia {
     @GloballyRooted fun jl_false(): jl_value_t
     @GloballyRooted fun jl_nothing(): jl_value_t
 
+    fun jl_n_threadpools(): Int
     fun jl_n_threads(): Int
-
-    fun jl_gc_running(): Int
+    fun jl_n_threads_per_pool(): Array<Int>
 
     /*
      * Custom helper methods
@@ -395,6 +393,16 @@ interface Julia {
     fun assertInJuliaThread() {
         if (!inJuliaThread())
             throw NotInJuliaThreadException()
+    }
+
+    fun threadsCount(pool: Int = JL_DEFAULT_THREAD_POOL): Int {
+        return if (JuliaVersion < JuliaVersion(1, 9)) {
+            if (pool != JL_DEFAULT_THREAD_POOL)
+                throw JuliaException("There is only one default thread pool before 1.9")
+            jl_n_threads()
+        } else {
+            jl_n_threads_per_pool()[pool]
+        }
     }
 
     /**

@@ -17,6 +17,7 @@ abstract class JuliaImplBase: Julia {
     }
 
     lateinit var lib: NativeLibrary
+    lateinit var libInternal: NativeLibrary
 
     /*
      * Julia globals & getters
@@ -32,9 +33,9 @@ abstract class JuliaImplBase: Julia {
     private lateinit var m_jl_false: jl_module_t
     private lateinit var m_jl_nothing: jl_module_t
 
+    private var m_jl_n_threadpools: Int = 1
     private var m_jl_n_threads: Int = 0
-
-    private lateinit var m_jl_gc_running: Pointer
+    private var m_jl_n_threads_per_pool: Array<Int> = arrayOf(0)
 
     override fun main_module(): jl_module_t = m_jl_main_module
     override fun base_module(): jl_module_t = m_jl_base_module
@@ -46,9 +47,9 @@ abstract class JuliaImplBase: Julia {
     override fun jl_false(): jl_value_t = m_jl_false
     override fun jl_nothing(): jl_value_t = m_jl_nothing
 
-    override fun jl_n_threads(): Int = m_jl_n_threads  // Constant as it should not change after 'jl_init'
-
-    override fun jl_gc_running(): Int = m_jl_gc_running.getInt(0)
+    override fun jl_n_threadpools(): Int = m_jl_n_threadpools
+    override fun jl_n_threads(): Int = m_jl_n_threads
+    override fun jl_n_threads_per_pool(): Array<Int> = m_jl_n_threads_per_pool
 
     /*
      * Utilities
@@ -107,7 +108,26 @@ abstract class JuliaImplBase: Julia {
         // Important detail: 'getGlobalVariableAddress' returns a pointer to the address of the symbol, not a pointer to
         // the symbol. See https://github.com/JuliaLang/julia/issues/36092#issuecomment-733292636
         return lib.getGlobalVariableAddress(symbol).getPointer(0)
-            ?: throw NullPointerException("Could not find the '$symbol' symbol in the Julia library")
+            ?: throw NullPointerException("Could not find the '$symbol' symbol in '${lib.file.absolutePath}'")
+    }
+
+    inline fun <reified T> getGlobal(symbol: String, offset: Long = 0L, internal: Boolean = false): T {
+        val lib = if (internal) libInternal else lib
+        val address = lib.getGlobalVariableAddress(symbol)
+        if (address == null || Pointer.nativeValue(address) == 0L)
+            throw NullPointerException("Could not find $symbol in '${lib.file.absolutePath}'")
+
+        return when (T::class) {
+            Byte::class       -> address.getByte(offset) as T
+            Short::class      -> address.getShort(offset) as T
+            Int::class        -> address.getInt(offset) as T
+            Long::class       -> address.getLong(offset) as T
+            Pointer::class    -> address.getPointer(offset) as T
+            jl_value_t::class -> address.getPointer(offset) as T
+            else -> {
+                throw Exception("Unknown type: ${T::class.java.name}")
+            }
+        }
     }
 
     /*
@@ -123,8 +143,9 @@ abstract class JuliaImplBase: Julia {
     /**
      * Must be called first in constructors of the implementing class.
      */
-    internal fun initJulia(lib_julia: NativeLibrary, lib_internal: NativeLibrary) {
-        this.lib = lib_julia
+    internal fun initJulia(libJulia: NativeLibrary, libInternal: NativeLibrary) {
+        this.lib = libJulia
+        this.libInternal = libInternal
 
         jl_init()
 
@@ -136,10 +157,17 @@ abstract class JuliaImplBase: Julia {
         m_jl_true = getGlobalVar("jl_true")
         m_jl_false = getGlobalVar("jl_false")
         m_jl_nothing = getGlobalVar("jl_nothing")
-        m_jl_n_threads = lib_julia.getGlobalVariableAddress("jl_n_threads").getInt(0L)
-        m_jl_gc_running = lib_internal.getGlobalVariableAddress("jl_gc_running")
+        m_jl_n_threads = getGlobal<Int>("jl_n_threads")
 
-        varargsImpl = Native.load(JuliaPath.JULIA_BIN_PATH, getVarargsImplClass())
+        if (JuliaVersion >= JuliaVersion(1, 9)) {
+            m_jl_n_threadpools = getGlobal<Int>("jl_n_threadpools")
+            m_jl_n_threads = getGlobal<Int>("jl_n_threads")
+
+            val n_threads_per_pool = getGlobal<Pointer>("jl_n_threads_per_pool")
+            m_jl_n_threads_per_pool = n_threads_per_pool.getIntArray(0, m_jl_n_threadpools).toTypedArray()
+        }
+
+        varargsImpl = Native.load(JuliaPath.LIB_JULIA, getVarargsImplClass())
 
         JuliaStruct.jl = this
     }

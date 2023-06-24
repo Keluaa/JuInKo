@@ -216,6 +216,10 @@ class JuliaOptions(private val optionsPointer: Pointer) {
 
     private val SIZE_handle_signals = 1 // int8_t
     private val OFFSET_handle_signals = alignTo(OFFSET_cookie + SIZE_cookie, SIZE_handle_signals)
+    var handle_signals: Boolean
+        get() = optionsPointer.getByte(OFFSET_handle_signals) == 1.toByte()
+        set(value) = optionsPointer.setByte(OFFSET_handle_signals,
+            if (value) JL_OPTIONS_HANDLE_SIGNALS_ON.toByte() else JL_OPTIONS_HANDLE_SIGNALS_OFF.toByte())
 
     private val SIZE_use_sysimage_native_code = 1 // int8_t
     private val OFFSET_use_sysimage_native_code = alignTo(OFFSET_handle_signals + SIZE_handle_signals, SIZE_use_sysimage_native_code)
