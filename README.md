@@ -7,7 +7,7 @@ bindings.
 The API is made to be very close to the Julia C API, with some common patterns
 made easier to write thanks to Kotlin.
 
-Currently only supports the latest Julia version: 1.9.0
+Currently only supports the Julia version 1.9 and above.
 
 Bindings for Julia 1.7 to 1.8 can be used but without multi-threading support.
 
@@ -30,7 +30,29 @@ Depending on the `JuliaVersion` loaded, not all functions will be available.
 with as you would with a `VersionNumber` in Julia.
 
 Both `libjulia` and `libjulia-internal` are loaded, but not all of their functions are
-made available.
+made available: they are implemented as they are needed.
+Do not hesitate to create a new issue for this, most functions are simple to implement.
+
+Julia options must be set before `JuliaLoader.get()` initializes Julia.
+The workflow should look like this:
+
+```kotlin
+JuliaLoader.loadLibrary()
+val jloptions = JuliaLoader.getOptions()
+// Set the options here...
+val jl = JuliaLoader.get()
+```
+
+### The `Julia.kt` interface
+
+It serves as the equivalent of `julia.h` and `julia-internal.h` (and a few other things).
+It is version independent: functions/variables defined in 1.10 will also be defined if
+the loaded Julia version is in 1.9, but will raise a `VersionException` if called.
+
+Common global C variables are directly available (e.g. `jl_main_module`, `jl_nothing`, etc...),
+and more specific ones can be accessed through `Julia::getGlobalVar`.
+
+Some common macros defined in `julia.h` where transformed into functions.
 
 ### Garbage Collector Management
 
@@ -69,3 +91,18 @@ jl.runInJuliaThread {
     println("jl_tid: $jl_tid, jvm_tid: $jvm_tid")
 }
 ```
+
+### Exceptions
+
+`Julia::exceptionCheck` encapsulates `jl_current_exception` to throw a `JuliaException`
+with the message and traceback of the Julia exception (note: this involves doing allocations,
+use it safely in a `GCStack` context).
+
+It is impossible to have an equivalent of the `JL_TRY` and `JL_CATCH` macros in the JVM,
+since they rely on the `setjmp` and `longjmp` C functions.
+
+Any Julia API function calling `jl_error` will result in a JVM crash with
+`"fatal: error thrown and no exception handler available"` as an error message.
+Most C functions have a wrapper defined in `jlapi.c` which surrounds the call with a
+try-catch block.
+Use those instead or do your call through a `jl_call`.
