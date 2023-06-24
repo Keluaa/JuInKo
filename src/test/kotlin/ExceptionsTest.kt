@@ -89,15 +89,23 @@ internal class ExceptionsTest: BaseTest() {
 
     @Test
     fun simpleError() {
-        jl.jl_eval_string(EXCEPTION_HANDLER_SOURCE)
-        jl.exceptionCheck()
+        GCStack(jl, 1).use { stack ->
+            val buffer = IOBuffer(jl)
+            stack[0] = buffer.pointer
 
-        var callf1 = jl.jl_eval_string(SIMPLE_ERROR_WITH_BACKTRACE)
-        jl.exceptionCheck()
-        callf1 = callf1!!
+            jl.jl_eval_string(EXCEPTION_HANDLER_SOURCE)
+            jl.exceptionCheck()
 
-        jl.jl_call1(callf1, jl.jl_stdout_obj())
-        Assertions.assertNull(jl.jl_exception_occurred())
+            var callf1 = jl.jl_eval_string(SIMPLE_ERROR_WITH_BACKTRACE)
+            jl.exceptionCheck()
+            callf1 = callf1!!
+
+            jl.jl_call1(callf1, buffer.pointer)
+            Assertions.assertNull(jl.jl_exception_occurred())
+
+            val str = buffer.getStringAndClear()
+            println(str)
+        }
     }
 
     @Test

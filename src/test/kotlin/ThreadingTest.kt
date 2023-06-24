@@ -1,6 +1,5 @@
 package com.keluaa.juinko
 
-import com.sun.jna.CallbackReference
 import org.junit.jupiter.api.*
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.locks.ReentrantLock
@@ -23,7 +22,7 @@ internal class ThreadingTest: BaseTest() {
         val threadsCount = jl.jl_unbox_int64(jl.jl_call0(nthreadsFunc)!!)
         Assertions.assertEquals(JULIA_THREADS.toLong(), threadsCount)
 
-        Assertions.assertEquals(JULIA_THREADS, jl.jl_n_threads())
+        Assertions.assertEquals(JULIA_THREADS.toLong(), jl.threadsCount())
     }
 
     @Test
@@ -81,7 +80,6 @@ internal class ThreadingTest: BaseTest() {
         val adoptedThreads = AtomicInteger(0)
         val tids = Array(JULIA_THREADS*2) { 0 }
 
-        // This is what you SHOULD do when mixing JVM and Julia threads
         val threads = mutableListOf<Thread>()
         for (i in 0 until JULIA_THREADS*2) {
             threads.add(Thread {
