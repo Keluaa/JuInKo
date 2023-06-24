@@ -47,9 +47,19 @@ class JuliaPath {
             JULIA_LIB_DIR = path
         }
 
-        private fun pathFromProperties(): String? = System.getProperty("juinko.julia_path", null)
+        private fun cleanPath(path: String?): String? {
+            return if (path == null)
+                null
+            else if (path.startsWith('"') && path.endsWith('"')) {
+                path.substring(1 until path.length-1)
+            } else {
+                path
+            }
+        }
 
-        private fun pathFromBinDir(): String? = System.getenv("JULIA_BINDIR")
+        private fun pathFromProperties(): String? = cleanPath(System.getProperty("juinko.julia_path", null))
+
+        private fun pathFromBinDir(): String? = cleanPath(System.getenv("JULIA_BINDIR"))
 
         private fun pathFromLibDir(): String? {
             val jl_bindir = pathFromBinDir()
@@ -58,7 +68,7 @@ class JuliaPath {
         }
 
         private fun pathFromJulia(): String? {
-            val jl_exe = System.getenv("JULIA")
+            val jl_exe = cleanPath(System.getenv("JULIA"))
             if (jl_exe != null) return Paths.get(jl_exe).parent.toString()
             return null
         }
