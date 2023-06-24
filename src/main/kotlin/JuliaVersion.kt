@@ -56,7 +56,8 @@ class JuliaVersion : Comparable<JuliaVersion> {
     }
 
     constructor(major: Int, minor: Int) {
-        version = SemVer(major, minor, 0)
+        // Build a version placed before all patches and pre releases, but after all 'minor-1'
+        version = SemVer(major, minor, 0, "0")
     }
 
     constructor(str: String) {

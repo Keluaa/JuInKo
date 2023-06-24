@@ -22,7 +22,7 @@ internal class ThreadingTest: BaseTest() {
         val threadsCount = jl.jl_unbox_int64(jl.jl_call0(nthreadsFunc)!!)
         Assertions.assertEquals(JULIA_THREADS.toLong(), threadsCount)
 
-        Assertions.assertEquals(JULIA_THREADS.toLong(), jl.threadsCount())
+        Assertions.assertEquals(JULIA_THREADS, jl.threadsCount())
     }
 
     @Test

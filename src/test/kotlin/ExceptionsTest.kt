@@ -5,6 +5,7 @@ import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.condition.EnabledIf
 
 internal class ExceptionsTest: BaseTest() {
 
@@ -79,6 +80,9 @@ internal class ExceptionsTest: BaseTest() {
             return abracadabra()
         end
         """
+
+        @JvmStatic
+        fun if_before_1_10() = JuliaVersion < JuliaVersion(1, 10)
     }
 
     fun handleReturnValue(ret: jl_value_t, errorBuffer: IOBuffer): jl_value_t {
@@ -201,6 +205,7 @@ internal class ExceptionsTest: BaseTest() {
     }
 
     @Test
+    @EnabledIf("if_before_1_10")
     fun parsingException() {
         jl.jl_eval_string(WRONG_CODE)
         val exception = Assertions.assertThrows(JuliaException::class.java) {
