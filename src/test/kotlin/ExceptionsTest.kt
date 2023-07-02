@@ -164,7 +164,7 @@ internal class ExceptionsTest: BaseTest() {
         jl.exceptionCheck()
 
         var callff1 = jl.jl_load_file_string(NESTED_ERRORS_WITH_BACKTRACE, NESTED_ERRORS_WITH_BACKTRACE.length.toLong(),
-            "ExceptionsTest.kt::NESTED_ERRORS_WITH_BACKTRACE", jl.main_module())
+            "ExceptionsTest.kt::NESTED_ERRORS_WITH_BACKTRACE", jl.jl_main_module())
         jl.exceptionCheck()
         callff1 = callff1!!
 
@@ -199,7 +199,7 @@ internal class ExceptionsTest: BaseTest() {
         """.trimIndent()
 
         var callff1 = jl.jl_load_file_string(WRONG_CODE, WRONG_CODE.length.toLong(),
-            "ExceptionsTest.kt::WRONG_CODE", jl.main_module())
+            "ExceptionsTest.kt::WRONG_CODE", jl.jl_main_module())
 
         // TODO
     }

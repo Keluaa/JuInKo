@@ -24,9 +24,9 @@ class FinalizerMonitor(private val jl: Julia) {
     private val finalizerFunc = jl.jl_eval_string(FINALIZER_FUNC_SOURCE)!!
 
     fun reset() {
-        val binding = jl.jl_get_binding_wr(jl.main_module(), monitorName, 1)!!
+        val binding = jl.jl_get_binding_wr(jl.jl_main_module(), monitorName, 1)!!
         val boxedNull = jl.jl_box_voidpointer(Pointer.createConstant(0))
-        jl.jl_checked_assignment(binding, boxedNull)
+        jl.jl_checked_assignment(binding, jl.jl_main_module(), monitorName, boxedNull)
         jl.exceptionCheck()
     }
 
@@ -38,7 +38,7 @@ class FinalizerMonitor(private val jl: Julia) {
     fun track(obj: RefValue) = track(obj.pointer)
 
     fun getLast(): Pointer {
-        val finalized = jl.jl_get_global(jl.main_module(), monitorName)!!
+        val finalized = jl.jl_get_global(jl.jl_main_module(), monitorName)!!
         return jl.jl_unbox_voidpointer(finalized)
     }
 }

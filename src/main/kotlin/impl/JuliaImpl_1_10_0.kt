@@ -4,7 +4,7 @@ import com.keluaa.juinko.*
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 
-class JuliaImpl_1_9_0: JuliaImplBase() {
+class JuliaImpl_1_10_0: JuliaImplBase() {
     companion object {
         init {
             Native.register(JuliaPath.LIB_JULIA)
@@ -73,15 +73,15 @@ class JuliaImpl_1_9_0: JuliaImplBase() {
 
     external override fun jl_get_binding(m: jl_module_t, name: jl_sym_t): jl_binding_t?
     external override fun jl_get_binding_or_error(m: jl_module_t, name: jl_sym_t): jl_binding_t
-    external override fun jl_get_binding_wr(m: jl_module_t, name: jl_sym_t, alloc: Int): jl_binding_t?
+
+    external fun jl_get_binding_wr(m: jl_module_t, name: jl_sym_t): jl_binding_t?
+    override fun jl_get_binding_wr(m: jl_module_t, name: jl_sym_t, alloc: Int) = jl_get_binding_wr(m, name)
+
     external override fun jl_get_binding_for_method_def(m: jl_module_t, name: jl_sym_t): jl_binding_t
     external override fun jl_boundp(m: jl_module_t, name: jl_sym_t): Int
 
-    external fun jl_checked_assignment(b: jl_binding_t, rhs: jl_value_t)
-    override fun jl_checked_assignment(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t, rhs: jl_value_t) = jl_checked_assignment(b, rhs)
-
-    external fun jl_declare_constant(b: jl_binding_t)
-    override fun jl_declare_constant(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t) = jl_declare_constant(b)
+    external override fun jl_checked_assignment(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t, rhs: jl_value_t)
+    external override fun jl_declare_constant(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t)
 
     external override fun jl_eval_string(str: String): jl_value_t?
     external override fun jl_load_file_string(text: String, len: Long, filename: String, module: jl_module_t): jl_value_t?

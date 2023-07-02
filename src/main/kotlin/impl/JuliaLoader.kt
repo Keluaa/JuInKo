@@ -85,11 +85,15 @@ class JuliaLoader {
             val libVersion = JuliaVersion.get()
             INSTANCE = if (libVersion < JuliaVersion(1, 7, 2)) {
                 throw VersionException("Julia versions below 1.7.2 are not supported")
-            } else if (libVersion < JuliaVersion(1, 9, 0)) {
+            } else if (libVersion < JuliaVersion(1, 9)) {
                 JuliaImpl_1_7_2()
-            } else {
+            } else if (libVersion < JuliaVersion(1, 10)) {
                 JuliaImpl_1_9_0()
+            } else {
+                JuliaImpl_1_10_0()
             }
+
+            LOG.info("Julia interface version: ${INSTANCE!!.javaClass.simpleName}")
 
             setupOptions()
 

@@ -1,7 +1,6 @@
 package com.keluaa.juinko.impl
 
 import com.keluaa.juinko.*
-import com.keluaa.juinko.types.jl_binding_t
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 
@@ -78,8 +77,11 @@ class JuliaImpl_1_7_2 : JuliaImplBase() {
     external override fun jl_get_binding_for_method_def(m: jl_module_t, name: jl_sym_t): jl_binding_t
     external override fun jl_boundp(m: jl_module_t, name: jl_sym_t): Int
 
-    external override fun jl_checked_assignment(b: jl_binding_t, rhs: jl_value_t)
-    external override fun jl_declare_constant(b: jl_binding_t)
+    external fun jl_checked_assignment(b: jl_binding_t, rhs: jl_value_t)
+    override fun jl_checked_assignment(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t, rhs: jl_value_t) = jl_checked_assignment(b, rhs)
+
+    external fun jl_declare_constant(b: jl_binding_t)
+    override fun jl_declare_constant(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t) = jl_declare_constant(b)
 
     external override fun jl_eval_string(str: String): jl_value_t?
     external override fun jl_load_file_string(text: String, len: Long, filename: String, module: jl_module_t): jl_value_t?
