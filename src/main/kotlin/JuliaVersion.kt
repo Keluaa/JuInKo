@@ -1,4 +1,4 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
 import com.sun.jna.NativeLibrary
 import net.swiftzer.semver.SemVer

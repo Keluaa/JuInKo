@@ -1,4 +1,4 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
 import org.intellij.lang.annotations.Language
 import org.junit.jupiter.api.Assertions

@@ -1,7 +1,7 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
-import com.keluaa.juinko.impl.JuliaImplBase
-import com.keluaa.juinko.impl.JuliaLoader
+import com.github.keluaa.juinko.impl.JuliaImplBase
+import com.github.keluaa.juinko.impl.JuliaLoader
 
 open class BaseTest {
 

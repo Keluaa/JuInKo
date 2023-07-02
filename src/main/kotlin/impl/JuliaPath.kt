@@ -1,4 +1,4 @@
-package com.keluaa.juinko.impl
+package com.github.keluaa.juinko.impl
 
 import com.sun.jna.Platform
 import java.io.File

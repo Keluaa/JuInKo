@@ -1,7 +1,7 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
-import com.keluaa.juinko.impl.JuliaImplBase
-import com.keluaa.juinko.types.*
+import com.github.keluaa.juinko.impl.JuliaImplBase
+import com.github.keluaa.juinko.types.*
 import com.sun.jna.Pointer
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll

@@ -1,6 +1,6 @@
-package com.keluaa.juinko.types
+package com.github.keluaa.juinko.types
 
-import com.keluaa.juinko.*
+import com.github.keluaa.juinko.*
 import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.isAccessible
 

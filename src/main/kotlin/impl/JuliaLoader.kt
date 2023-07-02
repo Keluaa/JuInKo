@@ -1,7 +1,7 @@
-package com.keluaa.juinko.impl
+package com.github.keluaa.juinko.impl
 
-import com.keluaa.juinko.*
-import com.keluaa.juinko.types.JuliaOptions
+import com.github.keluaa.juinko.*
+import com.github.keluaa.juinko.types.JuliaOptions
 import com.sun.jna.NativeLibrary
 import com.sun.jna.Platform
 import java.util.logging.Logger

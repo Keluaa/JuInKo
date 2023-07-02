@@ -1,4 +1,4 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
 
 /**

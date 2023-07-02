@@ -1,4 +1,4 @@
-package com.keluaa.juinko.types
+package com.github.keluaa.juinko.types
 
 /**
  * Wrapper around the `jl_arrayflags_t` struct, composed only of bitfields.

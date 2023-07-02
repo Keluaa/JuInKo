@@ -1,6 +1,6 @@
-package com.keluaa.juinko.impl
+package com.github.keluaa.juinko.impl
 
-import com.keluaa.juinko.*
+import com.github.keluaa.juinko.*
 import com.sun.jna.Native
 import com.sun.jna.Pointer
 

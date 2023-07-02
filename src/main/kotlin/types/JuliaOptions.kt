@@ -1,6 +1,6 @@
-package com.keluaa.juinko.types
+package com.github.keluaa.juinko.types
 
-import com.keluaa.juinko.JuliaVersion
+import com.github.keluaa.juinko.JuliaVersion
 import com.sun.jna.Memory
 import com.sun.jna.Native
 import com.sun.jna.NativeLibrary

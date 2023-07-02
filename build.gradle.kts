@@ -3,7 +3,7 @@ plugins {
     id("maven-publish")
 }
 
-group = "com.keluaa"
+group = "com.github.keluaa"
 version = "1.0.0"
 
 repositories {

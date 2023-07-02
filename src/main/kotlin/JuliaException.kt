@@ -1,4 +1,4 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
 class JuliaException: Exception {
     private val context_msg: String

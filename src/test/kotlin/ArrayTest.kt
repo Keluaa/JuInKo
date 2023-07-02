@@ -1,6 +1,6 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
-import com.keluaa.juinko.types.jl_array_flags
+import com.github.keluaa.juinko.types.jl_array_flags
 import org.junit.jupiter.api.Assertions
 import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test

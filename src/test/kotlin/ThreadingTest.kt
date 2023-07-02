@@ -1,4 +1,4 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
 import org.junit.jupiter.api.*
 import java.util.concurrent.atomic.AtomicInteger

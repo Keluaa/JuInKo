@@ -1,6 +1,6 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
-import com.keluaa.juinko.types.JuliaStruct
+import com.github.keluaa.juinko.types.JuliaStruct
 import com.sun.jna.PointerType
 
 

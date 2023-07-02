@@ -1,10 +1,10 @@
 @file:Suppress("FunctionName")
 
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
-import com.keluaa.juinko.types.jl_array_flags
-import com.keluaa.juinko.types.jl_datatype_t
-import com.keluaa.juinko.types.jl_task_t
+import com.github.keluaa.juinko.types.jl_array_flags
+import com.github.keluaa.juinko.types.jl_datatype_t
+import com.github.keluaa.juinko.types.jl_task_t
 import com.sun.jna.Library
 import com.sun.jna.Pointer
 

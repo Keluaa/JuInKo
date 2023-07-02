@@ -1,4 +1,4 @@
-package com.keluaa.juinko
+package com.github.keluaa.juinko
 
 import com.sun.jna.Memory
 import com.sun.jna.Pointer
