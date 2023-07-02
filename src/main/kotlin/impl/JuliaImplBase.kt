@@ -16,6 +16,13 @@ abstract class JuliaImplBase: Julia {
         throw VersionException("≥", availableVersion, "intrinsic function '$callerName' is unavailable in this version")
     }
 
+    fun removedIn(removedVersion: JuliaVersion): Nothing {
+        val callerName = StackWalker.getInstance()
+            .walk { stream -> stream.skip(1).findFirst().get() }
+            .methodName
+        throw VersionException("<", removedVersion, "intrinsic function '$callerName' was removed in a previous version")
+    }
+
     lateinit var lib: NativeLibrary
     lateinit var libInternal: NativeLibrary
 

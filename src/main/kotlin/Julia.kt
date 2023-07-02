@@ -3,7 +3,6 @@
 package com.keluaa.juinko
 
 import com.keluaa.juinko.types.jl_array_flags
-import com.keluaa.juinko.types.jl_binding_t
 import com.keluaa.juinko.types.jl_datatype_t
 import com.keluaa.juinko.types.jl_task_t
 import com.sun.jna.Library
@@ -19,6 +18,7 @@ typealias jl_gcframe_ptr = Pointer  /* jl_gcframe_t** */
 typealias jl_taggedvalue_t = Pointer
 typealias jl_svec_t = Pointer
 typealias jl_tupletype_t = Pointer
+typealias jl_binding_t = Pointer
 typealias jl_datatype_ptr = Pointer  /* jl_datatype_t, but as a Pointer object */
 typealias jl_methtable_t = Pointer
 typealias JL_STREAM = Pointer  /* JL_STREAM, or 'struct uv_stream_s*'. NOT A 'jl_value_t*' !! */
@@ -56,6 +56,18 @@ annotation class PropagatesRoot
  */
 annotation class RootingArgument
 annotation class RootedArgument
+
+/**
+ * Marks a function as available until Julia [version] (exclusive).
+ * Using such a function with an incompatible Julia version will throw a [VersionException]
+ */
+annotation class AvailableBefore(val version: String)
+
+/**
+ * Marks a function as available starting from Julia [version] (inclusive).
+ * Using such a function with an incompatible Julia version will throw a [VersionException]
+ */
+annotation class AvailableFrom(val version: String)
 
 
 interface Julia {
@@ -131,12 +143,11 @@ interface Julia {
     fun jl_get_binding(@PropagatesRoot m: jl_module_t, name: jl_sym_t): jl_binding_t?
     fun jl_get_binding_or_error( @PropagatesRoot m: jl_module_t, name: jl_sym_t): jl_binding_t
     fun jl_get_binding_wr(@PropagatesRoot m: jl_module_t, name: jl_sym_t, alloc: Int): jl_binding_t?
-//    fun jl_get_binding_wr_or_error(@PropagatesRoot m: jl_module_t, name: jl_sym_t): jl_binding_t
     fun jl_get_binding_for_method_def(@PropagatesRoot m: jl_module_t, name: jl_sym_t): jl_binding_t
     fun jl_boundp(m: jl_module_t, name: jl_sym_t): Int  /* Equivalent to `isdefined(m, name)` */
 
-    fun jl_checked_assignment(b: jl_binding_t, @MaybeUnrooted rhs: jl_value_t)
-    fun jl_declare_constant(b: jl_binding_t)
+    fun jl_checked_assignment(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t, @MaybeUnrooted rhs: jl_value_t)
+    fun jl_declare_constant(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t)
 
     fun jl_eval_string(str: String): jl_value_t?
     fun jl_load_file_string(text: String, len: Long, filename: String, module: jl_module_t): jl_value_t?

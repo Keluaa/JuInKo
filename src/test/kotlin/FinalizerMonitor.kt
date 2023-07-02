@@ -26,7 +26,7 @@ class FinalizerMonitor(private val jl: Julia) {
     fun reset() {
         val binding = jl.jl_get_binding_wr(jl.jl_main_module(), monitorName, 1)!!
         val boxedNull = jl.jl_box_voidpointer(Pointer.createConstant(0))
-        jl.jl_checked_assignment(binding, boxedNull)
+        jl.jl_checked_assignment(binding, jl.jl_main_module(), monitorName, boxedNull)
         jl.exceptionCheck()
     }
 
