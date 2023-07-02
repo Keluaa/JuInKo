@@ -78,7 +78,7 @@ class JuliaImpl_1_9_0: JuliaImplBase() {
     external override fun jl_boundp(m: jl_module_t, name: jl_sym_t): Int
 
     external fun jl_checked_assignment(b: jl_binding_t, rhs: jl_value_t)
-    override fun jl_checked_assignment(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t, rhs: jl_value_t) = jl_checked_assignment(v, rhs)
+    override fun jl_checked_assignment(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t, rhs: jl_value_t) = jl_checked_assignment(b, rhs)
 
     external fun jl_declare_constant(b: jl_binding_t)
     override fun jl_declare_constant(b: jl_binding_t, mod: jl_module_t, v: jl_sym_t) = jl_declare_constant(b)
