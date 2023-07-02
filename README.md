@@ -1,6 +1,8 @@
 
 # JuInKo
 
+[![Release](https://jitpack.io/v/Keluaa/JuInKo.svg)](https://jitpack.io/#Keluaa/JuInKo)
+
 JuInKo (for *Julia In Kotlin*) allows you to embed Julia into your 
 Kotlin/Java project using [JNA](https://github.com/java-native-access/jna)
 bindings.
@@ -11,6 +13,18 @@ Currently only supports the Julia version 1.9 and above.
 
 Bindings for Julia 1.7 to 1.8 can be used but without multi-threading support.
 
+## Adding JuInKo to your project
+
+```kotlin
+repositories {
+    mavenCentral()
+    maven("https://jitpack.io")
+}
+
+dependencies {
+     implementation("com.github.Keluaa:JuInKo:1.0")
+}
+```
 
 ## Usage
 

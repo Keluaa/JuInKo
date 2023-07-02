@@ -25,3 +25,16 @@ tasks.test {
 kotlin {
     jvmToolchain(11)
 }
+
+java {
+    withSourcesJar()
+    withJavadocJar()
+}
+
+publishing {
+    publications {
+        create<MavenPublication>("Maven") {
+            from(components["java"])
+        }
+    }
+}
