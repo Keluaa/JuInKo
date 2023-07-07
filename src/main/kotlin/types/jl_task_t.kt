@@ -19,7 +19,7 @@ class jl_task_t(p: Pointer?) : PointerType(p) {
         private val OFFSET_result:       Long by STRUCT.field("result")
         private val OFFSET_logstate:     Long by STRUCT.field("logstate")
         private val OFFSET_code:         Long by STRUCT.field("code")
-        private val OFFSET_rngState:     Long by lazy { STRUCT.field(JuliaVersion.from("1.10", { "rngState" }, { "rngState0" })).value }
+        private val OFFSET_rngState:     Long by STRUCT.field("rngState0")
         private val OFFSET__state:       Long by STRUCT.field("_state")
         private val OFFSET_sticky:       Long by STRUCT.field("sticky")
         private val OFFSET__isexception: Long by STRUCT.field("_isexception")
