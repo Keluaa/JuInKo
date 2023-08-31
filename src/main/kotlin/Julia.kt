@@ -18,10 +18,14 @@ typealias jl_gcframe_ptr = Pointer  /* jl_gcframe_t** */
 typealias jl_taggedvalue_t = Pointer
 typealias jl_svec_t = Pointer
 typealias jl_tupletype_t = Pointer
-typealias jl_binding_t = Pointer
 typealias jl_datatype_ptr = Pointer  /* jl_datatype_t, but as a Pointer object */
 typealias jl_methtable_t = Pointer
 typealias JL_STREAM = Pointer  /* JL_STREAM, or 'struct uv_stream_s*'. NOT A 'jl_value_t*' !! */
+
+/**
+ * `jl_binding_t` is **NOT** a `jl_value_t` before 1.10!
+ */
+typealias jl_binding_t = Pointer
 
 /* Internal Julia types */
 typealias jl_method_t = Pointer
@@ -416,26 +420,6 @@ interface Julia {
         }
     }
 
-    /**
-     * Run a function in a Julia thread, from any JVM thread.
-     *
-     * Requires Julia 1.9.0 or later.
-     *
-     * Warning: Julia 1.9.0 and 1.9.1 have unsafe adoption mechanisms which will fail if the GC is running. Use 1.9.2 or
-     * later to avoid this issue. See [this PR](https://github.com/JuliaLang/julia/pull/49934) for more info.
-     */
-    fun runInJuliaThread(func: () -> Unit) {
-        if (!inJuliaThread()) jl_adopt_thread()
-        val oldState = jl_gc_unsafe_enter()
-        try {
-            func()
-        } finally {
-            // Very important: if we have adopted a JVM thread, we must tell Julia that the thread is always in a
-            // GC safe point state when the thread is not running in a Julia context.
-            jl_gc_unsafe_leave(oldState)
-        }
-    }
-
     fun println(@MaybeUnrooted arg: jl_value_t) =
         jl_call1(getBaseObj("println"), arg)
     fun println(@MaybeUnrooted arg1: jl_value_t, @MaybeUnrooted arg2: jl_value_t) =
@@ -522,4 +506,24 @@ interface Julia {
     fun errorBuffer(): IOBuffer
 
     fun exceptionCheck()
+}
+
+/**
+ * Run a function in a Julia thread, from any JVM thread.
+ *
+ * Requires Julia 1.9.0 or later.
+ *
+ * Warning: Julia 1.9.0 and 1.9.1 have unsafe adoption mechanisms which will fail if the GC is running. Use 1.9.2 or
+ * later to avoid this issue. See [this PR](https://github.com/JuliaLang/julia/pull/49934) for more info.
+ */
+inline fun <R> Julia.runInJuliaThread(func: () -> R): R {
+    if (!inJuliaThread()) jl_adopt_thread()
+    val oldState = jl_gc_unsafe_enter()
+    try {
+        return func()
+    } finally {
+        // Very important: if we have adopted a JVM thread, we must tell Julia that the thread is always in a
+        // GC safe point state when the thread is not running in a Julia context.
+        jl_gc_unsafe_leave(oldState)
+    }
 }
