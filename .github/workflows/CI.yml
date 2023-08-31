@@ -17,6 +17,7 @@ jobs:
       matrix:
         jl_version:
           - '1.9'
+          - '~1.10-0'
           - 'nightly'
         os:
           - ubuntu-latest
@@ -35,6 +36,7 @@ jobs:
         with:
           version: ${{ matrix.jl_version }}
           arch: ${{ matrix.arch }}
+          include-all-prereleases: true
 
       - uses: julia-actions/cache@v1
 

@@ -81,6 +81,34 @@ internal class JuliaImplTest: BaseTest() {
     }
 
     @Test
+    fun jl_checked_assignment() {
+        val mod = jl.jl_main_module()
+        val v = jl.jl_symbol("my_val")
+
+        GCStack(jl, 1).use { stack ->
+            val b = jl.jl_get_binding_wr(mod, v, 1)
+            jl.exceptionCheck()
+            // Bindings are rooted to the module and are NOT a `jl_value_t` before 1.10, therefore they do not belong on
+            // the stack (even after 1.10!)
+            b!!
+
+            val rhs = jl.jl_box_int64(42)
+            stack[0] = rhs
+
+            jl.jl_declare_constant(b, mod, v)
+            jl.exceptionCheck()
+
+            jl.jl_checked_assignment(b, mod, v, rhs)
+            jl.exceptionCheck()
+        }
+
+        val value = jl.jl_get_global(mod, v)
+        jl.exceptionCheck()
+        val unboxed = jl.jl_unbox_int64(value!!)
+        assertEquals(42, unboxed)
+    }
+
+    @Test
     fun jl_set_typeof() {
         // We cast a Vector{UInt} to a Vector{Int} to test if it works
         val vectorType = jl.getBaseObj("Vector")

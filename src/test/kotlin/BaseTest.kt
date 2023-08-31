@@ -2,11 +2,19 @@ package com.github.keluaa.juinko
 
 import com.github.keluaa.juinko.impl.JuliaImplBase
 import com.github.keluaa.juinko.impl.JuliaLoader
+import org.junit.jupiter.api.Assumptions
+import java.util.logging.Logger
+import kotlin.math.min
 
 open class BaseTest {
 
     companion object {
-        const val JULIA_THREADS = 4
+        val LOG = Logger.getLogger("Test")
+
+        /**
+         * Some CI runners have less than 4 cores available
+         */
+        val JULIA_THREADS = min(4, Runtime.getRuntime().availableProcessors())
 
         lateinit var jl: Julia
 
@@ -33,8 +41,13 @@ open class BaseTest {
         }
 
         fun ensureJuliaHasThreads() {
-            if (jl.threadsCount() != JULIA_THREADS)
-                throw RuntimeException("Tests expect $JULIA_THREADS Julia threads, got: ${jl.threadsCount()}")
+            val threadCount = jl.threadsCount()
+            if (threadCount != JULIA_THREADS) {
+                LOG.warning("Tests expect $JULIA_THREADS Julia threads, got: $threadCount")
+            }
+
+            if (threadCount <= 1 || JULIA_THREADS == 1)
+                throw RuntimeException("Cannot run threading test without threads")
         }
     }
 }
