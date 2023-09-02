@@ -2,11 +2,36 @@ package com.github.keluaa.juinko.impl
 
 import com.github.keluaa.juinko.*
 import com.github.keluaa.juinko.types.JuliaOptions
-import com.sun.jna.NativeLibrary
-import com.sun.jna.Platform
+import com.sun.jna.*
+import com.sun.jna.win32.W32APIOptions
 import java.util.logging.Logger
 
+/**
+ * Manages the loading and initialization of Julia.
+ */
 class JuliaLoader {
+
+    interface Kernel32 : Library {
+        companion object {
+            val INSTANCE: Kernel32? =
+                if (Platform.isWindows())
+                    Native.load("Kernel32", Kernel32::class.java, W32APIOptions.DEFAULT_OPTIONS)
+                else
+                    null
+        }
+
+        fun GetDllDirectory(length: Int, buffer: Pointer): Int
+        fun SetDllDirectory(path: String): Boolean
+
+        fun GetDllDirectory(): String {
+            val count = GetDllDirectory(0, Pointer.NULL)
+            val buffer = Memory(count.toLong() + 1) // +1 for '\0'
+            if (GetDllDirectory(count, buffer) != count)
+                throw Exception("GetDllDirectory fail")
+            return buffer.getWideString(0)
+        }
+    }
+
     companion object {
         private val LOG = Logger.getLogger(JuliaLoader::class.java.name)
 
@@ -14,7 +39,56 @@ class JuliaLoader {
         private var LIB_JULIA_INTERNAL: NativeLibrary? = null
         private var INSTANCE: JuliaImplBase? = null
 
+        private var PREV_DLL_DIRECTORY_PATH: String? = null
+
         fun isLibJuliaLoaded() = LIB_JULIA != null
+        fun isJuliaInitialized() = INSTANCE != null
+
+        /**
+         * Overrides the shared library load path to Julia's bin directory, ensuring `jl_init` will find them all.
+         *
+         * `juliaup` does not rely on `PATH` (or `Path` on Windows) or any other environment variable, but Julia needs
+         * to have a path to its libraries, so how does it work?
+         * When running Julia from its executable, all OSes try at some point to search libraries in the directory of
+         * the exe.
+         * BUT, when running Julia from another program, everything breaks when dynamically loading a library with
+         * `dlopen` (or `LoadLibraryEx`), since the OS only searches around the current program, not in the same
+         * directory as 'libjulia'.
+         *
+         * In Java, it is unreliable/not portable to change the environment variables of the current process.
+         * Therefore, we must rely on OS functions to do that.
+         *
+         * On Windows, Julia uses `LoadLibraryEx` with the `LOAD_WITH_ALTERED_SEARCH_PATH` flag. This means that our
+         * only option (I pass over the very convoluted DLL search path mechanism) is to use `SetDllDirectory`, in order
+         * to add the Julia bin dir to the search path.
+         * Note: `AddDllDirectory` only works with the `LOAD_LIBRARY_SEARCH_USER_DIRS` flag.
+         *
+         * Once the library search path is corrected, it is safe to call `jl_init`.
+         * If the search path is wrong, the process aborts, usually with an error such as 'could not find libpcre2-8',
+         * which ends up being the first library that Julia loads this way.
+         *
+         * An alternative would be to manually load all libraries in the Julia bin dir before `jl_init`, but the current
+         * fix is certainly more correct and reliable.
+         *
+         */
+        fun setLibraryLoadPath() {
+            if (Platform.isWindows()) {
+                PREV_DLL_DIRECTORY_PATH = Kernel32.INSTANCE?.GetDllDirectory()
+                Kernel32.INSTANCE?.SetDllDirectory(JuliaPath.JULIA_LIB_DIR)
+            }
+        }
+
+        /**
+         * Undoes [setLibraryLoadPath], in case the Dll load path is being used by the current process.
+         * `jl_init` should load all libraries required by Julia, therefore the load path doesn't matter afterward.
+         */
+        fun resetLibraryLoadPath() {
+            if (PREV_DLL_DIRECTORY_PATH == null) return
+
+            if (Platform.isWindows()) {
+                Kernel32.INSTANCE?.SetDllDirectory(PREV_DLL_DIRECTORY_PATH!!)
+            }
+        }
 
         private fun checkStringEncoding() {
             val encoding = System.getProperty("jna.encoding", null)
@@ -46,8 +120,7 @@ class JuliaLoader {
         }
 
         fun getOptions(): JuliaOptions {
-            if (LIB_JULIA == null)
-                throw Exception("Julia library is not loaded. Call 'loadLibrary()' first.")
+            loadLibrary()
             return JuliaOptions.getOptions(LIB_JULIA!!)
         }
 
@@ -70,8 +143,7 @@ class JuliaLoader {
 
             val libVersion = JuliaVersion.get()
             if (JuliaVersion(1, 9, 0) <= libVersion || libVersion < JuliaVersion(1, 9, 2)) {
-                // TODO: check if this warning is correct, if not, also adjust the doc of [Julia.runInJuliaThread]
-                //  See https://github.com/JuliaLang/julia/pull/49934 and https://github.com/JuliaLang/julia/pull/50090
+                // See https://github.com/JuliaLang/julia/pull/49934
                 LOG.warning("Julia 1.9.0 and 1.9.1 have unsafe thread adoption mechanism which could " +
                             "randomly fail. Use preferably Julia 1.9.2 or later.")
             }
@@ -97,7 +169,9 @@ class JuliaLoader {
 
             setupOptions()
 
+            setLibraryLoadPath()
             INSTANCE!!.initJulia(LIB_JULIA!!, LIB_JULIA_INTERNAL!!)
+            resetLibraryLoadPath()
 
             if (init) {
                 INSTANCE!!.initConstants()
@@ -109,6 +183,11 @@ class JuliaLoader {
             return INSTANCE!!
         }
 
+        /**
+         * Returns the current [Julia] instance, if it exists.
+         * If not, loads the Julia library and calls `jl_init`.
+         * Use [loadLibrary] and [getOptions] to set the [JuliaOptions] before Julia is initialized.
+         */
         fun get(): Julia = get(true)
     }
 }
