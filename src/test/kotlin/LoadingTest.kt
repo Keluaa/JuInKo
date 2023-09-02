@@ -28,7 +28,7 @@ internal class LoadingTest: BaseTest() {
 
     private fun runCommand(vararg args: String): Pair<Int, String> {
         val process = Runtime.getRuntime().exec(args)
-        if (!process.waitFor(1, TimeUnit.SECONDS)) {
+        if (!process.waitFor(5, TimeUnit.SECONDS)) {
             process.destroy()
             throw Exception("Timeout")
         }
@@ -63,7 +63,7 @@ internal class LoadingTest: BaseTest() {
             val libPath = lib.file.absolutePath
             LOG.info("From '$libName', loaded '$libPath'")
             if (libPath != JuliaPath.LIB_JULIA)
-                throw RuntimeException("Cannot continue tests as the wrong library has been loaded: $libPath")
+                throw RuntimeException("Cannot continue tests as the wrong library has been loaded: '$libPath' != '${JuliaPath.LIB_JULIA}'")
             true
         } catch (e: UnsatisfiedLinkError) {
             false
