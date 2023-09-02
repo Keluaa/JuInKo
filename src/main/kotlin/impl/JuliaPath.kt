@@ -26,8 +26,6 @@ class JuliaPath {
         init {
             val options = arrayOf(
                 ::pathFromProperties,
-                ::pathFromBinDir,
-                ::pathFromLibDir,
                 ::pathFromJulia,
                 ::pathFromJuliaLib,
                 ::pathFromCmdLine
@@ -59,14 +57,6 @@ class JuliaPath {
 
         private fun pathFromProperties(): String? = cleanPath(System.getProperty("juinko.julia_path", null))
 
-        private fun pathFromBinDir(): String? = cleanPath(System.getenv("JULIA_BINDIR"))
-
-        private fun pathFromLibDir(): String? {
-            val jl_bindir = pathFromBinDir()
-            if (jl_bindir != null) return Paths.get(jl_bindir, "../lib").toString()
-            return null
-        }
-
         private fun pathFromJulia(): String? {
             val jl_exe = cleanPath(System.getenv("JULIA"))
             if (jl_exe != null) return Paths.get(jl_exe).parent.toString()
@@ -80,6 +70,7 @@ class JuliaPath {
         }
 
         private fun pathFromCmdLine(): String? {
+            // Note that we don't bother trying the simpler `which julia` command first, because of juliaup.
             val juliaRunCmd = arrayOf(
                 "julia", "--startup-file=no", "-q", "-O0", "-E",
                 "unsafe_string(ccall(:jl_get_libdir, Cstring, ()))"
