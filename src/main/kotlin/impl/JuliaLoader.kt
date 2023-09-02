@@ -142,7 +142,7 @@ class JuliaLoader {
             }
 
             val libVersion = JuliaVersion.get()
-            if (JuliaVersion(1, 9, 0) <= libVersion || libVersion < JuliaVersion(1, 9, 2)) {
+            if (JuliaVersion(1, 9, 0) <= libVersion && libVersion < JuliaVersion(1, 9, 2)) {
                 // See https://github.com/JuliaLang/julia/pull/49934
                 LOG.warning("Julia 1.9.0 and 1.9.1 have unsafe thread adoption mechanism which could " +
                             "randomly fail. Use preferably Julia 1.9.2 or later.")
