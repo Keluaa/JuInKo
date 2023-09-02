@@ -2,7 +2,6 @@ package com.github.keluaa.juinko
 
 import com.github.keluaa.juinko.impl.JuliaImplBase
 import com.github.keluaa.juinko.impl.JuliaLoader
-import org.junit.jupiter.api.Assumptions
 import java.util.logging.Logger
 import kotlin.math.min
 
@@ -23,6 +22,7 @@ open class BaseTest {
                 JuliaLoader.loadLibrary()
                 val options = JuliaLoader.getOptions()
                 options.setNumThreads(JULIA_THREADS)
+                LOG.info("Using $JULIA_THREADS Julia threads")
             }
 
             jl = JuliaLoader.get(false)

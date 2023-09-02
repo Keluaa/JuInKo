@@ -8,6 +8,7 @@ class TestsOrderer : ClassOrderer {
 
     companion object {
         private val ORDER = arrayOf(
+            LoadingTest::class.simpleName,
             PointerOffsets::class.simpleName,
             JuliaImplTest::class.simpleName,
             StringsTest::class.simpleName,
