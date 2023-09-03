@@ -182,6 +182,8 @@ class JuliaImpl_1_7_2 : JuliaImplBase() {
         external fun jl_unlock_value(v: jl_value_t)
 
         external fun jl_sizeof_jl_options(): Long
+
+        external fun jl_breakpoint(v: jl_value_t)
     }
 
     private val internal = Internal()
@@ -200,4 +202,6 @@ class JuliaImpl_1_7_2 : JuliaImplBase() {
     override fun jl_unlock_value(v: jl_value_t) = internal.jl_unlock_value(v)
 
     override fun jl_sizeof_jl_options() = internal.jl_sizeof_jl_options()
+
+    override fun jl_breakpoint(v: jl_value_t) = internal.jl_breakpoint(v)
 }

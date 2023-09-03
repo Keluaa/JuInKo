@@ -359,6 +359,8 @@ interface Julia {
     @NotSafePoint fun jl_module_name(m: jl_module_t): jl_sym_t
     @NotSafePoint fun jl_module_parent(m: jl_module_t): jl_module_t
 
+    @NotSafePoint fun jl_breakpoint(v: jl_value_t)  // Dummy function to set a breakpoint with GDB
+
     /*
      * Singletons/Global vars
      */
@@ -506,6 +508,20 @@ interface Julia {
     fun errorBuffer(): IOBuffer
 
     fun exceptionCheck()
+
+    /**
+     * Utility for debugging native calls. Will call [jl_breakpoint] in an infinite loop. Works even if Julia is not
+     * initialized.
+     *
+     * [jl_breakpoint] is passed a pointer to a 1: `*(int*)v = 1`.
+     * Then you can take your time to launch and attach your C debugger (gdb, lldb, etc...) and set a breakpoint to
+     * [jl_breakpoint], which will be reached almost immediately. You can then set up other breakpoints.
+     * To break out of [waitUntilNativeDebugger], simply set `v` to any other value: `set *(int*)v = 2`, which will resume
+     * the flow of the program.
+     * This also works when using a Java/Kotlin debugger, allowing you to debug both sides at once.
+     * If `printPID = true` does not work for you, you can also find the PID of the Java process with `jsp`.
+     */
+    fun waitUntilNativeDebugger(printPID: Boolean = true)
 }
 
 /**

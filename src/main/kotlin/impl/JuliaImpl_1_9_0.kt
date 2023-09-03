@@ -169,6 +169,8 @@ class JuliaImpl_1_9_0: JuliaImplBase() {
 
         external fun jl_sizeof_jl_options(): Long
 
+        external fun jl_breakpoint(v: jl_value_t)
+
         // Moved to julia-internal in 1.9
 
         external fun jl_symbol_name(s: jl_sym_t): String
@@ -199,6 +201,8 @@ class JuliaImpl_1_9_0: JuliaImplBase() {
     override fun jl_unlock_value(v: jl_value_t) = internal.jl_unlock_value(v)
 
     override fun jl_sizeof_jl_options() = internal.jl_sizeof_jl_options()
+
+    override fun jl_breakpoint(v: jl_value_t) = internal.jl_breakpoint(v)
 
     override fun jl_symbol_name(s: jl_sym_t) = internal.jl_symbol_name(s)
 

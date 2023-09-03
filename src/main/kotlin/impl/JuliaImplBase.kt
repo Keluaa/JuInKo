@@ -2,6 +2,7 @@ package com.github.keluaa.juinko.impl
 
 import com.github.keluaa.juinko.*
 import com.github.keluaa.juinko.types.JuliaStruct
+import com.sun.jna.Memory
 import com.sun.jna.Native
 import com.sun.jna.NativeLibrary
 import com.sun.jna.Pointer
@@ -109,6 +110,18 @@ abstract class JuliaImplBase: Julia {
                 throw JuliaException(errorBuffer)
             }
         }
+    }
+
+    override fun waitUntilNativeDebugger(printPID: Boolean) {
+        if (printPID) {
+            System.err.println("DEBUG == PID: ${ProcessHandle.current().pid()}")
+        }
+        val fakeObj = Memory(4)
+        fakeObj.setInt(0, 1)
+        do {
+            Thread.sleep(10)
+            jl_breakpoint(fakeObj)
+        } while (fakeObj.getInt(0) == 1)
     }
 
     final override fun getGlobalVar(symbol: String): Pointer {
