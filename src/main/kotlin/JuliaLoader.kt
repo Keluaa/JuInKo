@@ -1,6 +1,9 @@
-package com.github.keluaa.juinko.impl
+package com.github.keluaa.juinko
 
-import com.github.keluaa.juinko.*
+import com.github.keluaa.juinko.impl.JuliaImplBase
+import com.github.keluaa.juinko.impl.JuliaImpl_1_10_0
+import com.github.keluaa.juinko.impl.JuliaImpl_1_7_2
+import com.github.keluaa.juinko.impl.JuliaImpl_1_9_0
 import com.github.keluaa.juinko.types.JuliaOptions
 import com.sun.jna.*
 import com.sun.jna.win32.W32APIOptions

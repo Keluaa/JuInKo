@@ -1,4 +1,4 @@
-package com.github.keluaa.juinko.impl
+package com.github.keluaa.juinko
 
 import com.sun.jna.Platform
 import java.io.File
@@ -40,10 +40,10 @@ class JuliaPath {
 
         init {
             val options = arrayOf(
-                ::pathFromProperties,
-                ::pathFromJulia,
-                ::pathFromJuliaLib,
-                ::pathFromCmdLine
+                Companion::pathFromProperties,
+                Companion::pathFromJulia,
+                Companion::pathFromJuliaLib,
+                Companion::pathFromCmdLine
             )
 
             var path: String? = null

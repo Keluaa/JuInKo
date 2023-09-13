@@ -1,7 +1,5 @@
 package com.github.keluaa.juinko
 
-import com.github.keluaa.juinko.impl.JuliaLoader
-import com.github.keluaa.juinko.impl.JuliaPath
 import com.sun.jna.NativeLibrary
 import com.sun.jna.Platform
 import org.junit.jupiter.api.BeforeAll
