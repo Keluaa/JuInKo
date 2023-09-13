@@ -165,8 +165,10 @@ abstract class JuliaImplBase: Julia {
         }
 
         m_jl_gc_running_ptr = getGlobalVarPtr("jl_gc_running", internal = true)
-        m_jl_all_tls_states_size_ptr = getGlobalVarPtr("jl_all_tls_states_size", internal = true)
         m_jl_all_tls_states_ptr = getGlobalVarPtr("jl_all_tls_states", internal = true)
+        if (JuliaVersion >= JuliaVersion("1.9")) {
+            m_jl_all_tls_states_size_ptr = getGlobalVarPtr("jl_all_tls_states_size", internal = true)
+        }
 
         varargsImpl = Native.load(JuliaPath.LIB_JULIA, getVarargsImplClass())
 

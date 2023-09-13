@@ -175,7 +175,7 @@ class JuliaOptions(private val optionsPointer: Pointer) {
         set(value) = optionsPointer.setByte(STRUCT["handle_signals"],
             if (value) JL_OPTIONS_HANDLE_SIGNALS_ON.toByte() else JL_OPTIONS_HANDLE_SIGNALS_OFF.toByte())
 
-    val structSize = STRUCT.size
+    val structSize = JuliaRawStruct.alignTo(STRUCT.size, 4)  // Alignment mostly for 1.7 support. I don't exactly know why the compiler does this.
 
     /*
      * Helper methods

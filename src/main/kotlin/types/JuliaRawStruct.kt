@@ -12,7 +12,7 @@ class JuliaRawStruct(val fields: Map<String, Long>, val size: Long) {
     class RawField(val name: String, val size: Int, val present: Boolean = true)
 
     companion object {
-        private fun alignTo(offset: Long, size: Int): Long {
+        fun alignTo(offset: Long, size: Int): Long {
             if (size == 0)
                 return offset
             if (offset % size == 0L)

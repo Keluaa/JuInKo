@@ -210,4 +210,6 @@ class JuliaImpl_1_7_2 : JuliaImplBase() {
     override fun jl_breakpoint(v: jl_value_t) = internal.jl_breakpoint(v)
 
     override fun jl_safepoint_wait_gc() = internal.jl_safepoint_wait_gc()
+
+    override fun jl_all_tls_states_size() = jl_n_threads()
 }
