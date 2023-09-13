@@ -11,7 +11,7 @@ made easier to write thanks to Kotlin.
 
 Currently only supports the Julia version 1.9 and above.
 
-Bindings for Julia 1.7 to 1.8 can be used but without multi-threading support.
+Bindings for Julia 1.7 can be used but without multi-threading support.
 
 ## Adding JuInKo to your project
 
@@ -31,10 +31,13 @@ dependencies {
 ### Loading Julia
 
 `JuliaPath` attempts 3 methods to find the Julia libraries, in this order:
- - the `"juinko.julia_path"` system property
+ - the `"juinko.julia_path"` JVM system property
  - the `JULIA_BINDIR` environment variable
  - the `JULIA` environment variable
  - or from the command line (and therefore the `PATH`): `julia -E "unsafe_string(ccall(:jl_get_libdir, Cstring, ()))"`
+
+The last method implicitly supports [juliaup](https://github.com/JuliaLang/juliaup),
+and will handle the `JULIAUP_CHANNEL` environment variable for example.
 
 Then `JuliaLoader.get()` allows to access and initialize the `Julia` interface instance
 corresponding to the library found by `JuliaPath`.
@@ -45,7 +48,8 @@ with as you would with a `VersionNumber` in Julia.
 
 Both `libjulia` and `libjulia-internal` are loaded, but not all of their functions are
 made available: they are implemented as they are needed.
-Do not hesitate to create a new issue for this, most functions are simple to implement.
+Do not hesitate to create a new issue for this, most functions are simple to implement,
+but doing them all is cumbersome.
 
 Julia options must be set before `JuliaLoader.get()` initializes Julia.
 The workflow should look like this:
@@ -60,13 +64,13 @@ val jl = JuliaLoader.get()
 ### The `Julia.kt` interface
 
 It serves as the equivalent of `julia.h` and `julia-internal.h` (and a few other things).
-It is version independent: functions/variables defined in 1.10 will also be defined if
-the loaded Julia version is in 1.9, but will raise a `VersionException` if called.
+It is version independent: functions/variables defined in `v1.10` will also be defined if
+the loaded Julia version is in `v1.9`, but will raise a `VersionException` if called.
 
 Common global C variables are directly available (e.g. `jl_main_module`, `jl_nothing`, etc...),
-and more specific ones can be accessed through `Julia::getGlobalVar`.
+and more specific ones can be accessed through `Julia.getGlobal` and `Julia.getGlobalVarPtr`.
 
-Some common macros defined in `julia.h` where transformed into functions.
+Some common macros defined in `julia.h` were transformed into functions.
 
 ### Garbage Collector Management
 
@@ -91,24 +95,36 @@ value with a longer lifetime (with immutables being handled differently from mut
 ### Multi-threading
 
 The Julia API can only be called from threads which are set up by Julia.
-While the main JVM thread (which loaded the library) is one of those, any
-other JVM thread might be unsafe. 
+While the main JVM thread is one of those, any other JVM thread is unsafe. 
 
 As from Julia 1.9, `jl_adopt_thread` allows to set up any thread to use the Julia API.
-The `Julia::runInJuliaThread` function will call `jl_adopt_thread` if needed, as well as
-handle some GC shenanigans. 
+The `Julia.runAsJuliaThread` function will call `jl_adopt_thread` if needed, as well as
+handle some important GC shenanigans.
 
 ```kotlin
-jl.runInJuliaThread {
+jl.runAsJuliaThread {
     val jl_tid = jl.jl_threadid()
     val jvm_tid = Thread.currentThread().id
     println("jl_tid: $jl_tid, jvm_tid: $jvm_tid")
 }
 ```
 
+#### Notes about multi-threading
+
+Programming good and reliable multi-threading will require you to understand the basics of how the
+Julia Garbage Collector works.
+
+I recommend to read [the documentation of `Julia.runAsJuliaThread`](src/main/kotlin/Julia.kt),
+as well as at the [multi-threading tests](src/test/kotlin/ThreadingTest.kt).
+
+#### Debugging multi-threading
+
+You will make mistakes, as we all do.
+The [DebuggingUtils](src/main/kotlin/DebuggingUtils.kt) object holds some useful functions to help you in your quest.
+
 ### Exceptions
 
-`Julia::exceptionCheck` encapsulates `jl_current_exception` to throw a `JuliaException`
+`Julia.exceptionCheck` encapsulates `jl_current_exception` to throw a `JuliaException`
 with the message and traceback of the Julia exception (note: this involves doing allocations,
 use it safely in a `GCStack` context).
 
