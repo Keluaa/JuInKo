@@ -4,7 +4,7 @@ import com.github.keluaa.juinko.impl.JuliaImplBase
 import java.util.logging.Logger
 import kotlin.math.min
 
-internal open class BaseTest {
+open class BaseTest {
 
     companion object {
         val LOG = Logger.getLogger("Test")
