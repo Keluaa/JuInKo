@@ -5,6 +5,7 @@ package com.github.keluaa.juinko
 import com.github.keluaa.juinko.types.jl_array_flags
 import com.github.keluaa.juinko.types.jl_datatype_t
 import com.github.keluaa.juinko.types.jl_task_t
+import com.github.keluaa.juinko.types.jl_tls_states_t
 import com.sun.jna.Library
 import com.sun.jna.Pointer
 
@@ -525,18 +526,23 @@ interface Julia {
     fun exceptionCheck()
 
     /**
-     * Utility for debugging native calls. Will call [jl_breakpoint] in an infinite loop. Works even if Julia is not
-     * initialized.
+     * Sets the main Julia thread as running unmanaged code, therefore not preventing other threads from doing GC.
+     * The current thread must be the main Julia thread.
      *
-     * [jl_breakpoint] is passed a pointer to a 1: `*(int*)v = 1`.
-     * Then you can take your time to launch and attach your C debugger (gdb, lldb, etc...) and set a breakpoint to
-     * [jl_breakpoint], which will be reached almost immediately. You can then set up other breakpoints.
-     * To break out of [waitUntilNativeDebugger], simply set `v` to any other value: `set *(int*)v = 2`, which will resume
-     * the flow of the program.
-     * This also works when using a Java/Kotlin debugger, allowing you to debug both sides at once.
-     * If `printPID = true` does not work for you, you can also find the PID of the Java process with `jsp`.
+     * By default, the main Julia thread is the only one set as unsafe: `jl_all_tls_states[0]->gc_state == 0`. All other
+     * Julia threads are safe (unless they are running tasks).
+     * In an application where Julia is treated as a worker which can be called only from any JVM thread, this can be
+     * problematic:
+     *
+     *
+     * This only needs to be called once from the main thread, after initializing Julia.
      */
-    fun waitUntilNativeDebugger(printPID: Boolean = true)
+    fun putMainJuliaThreadToSleep() {
+        val tid = jl_threadid()
+        if (tid != 0.toShort())
+            throw JuliaException("operation can only be done from the main Julia thread (currently on: $tid, expected 0)")
+        jl_gc_safe_enter()
+    }
 }
 
 
@@ -561,19 +567,85 @@ inline fun <reified T> Julia.getGlobal(symbol: String, offset: Long = 0L, intern
 /**
  * Run a function in a Julia thread, from any JVM thread.
  *
+ * After returning, Julia threads will keep their `gc_state` from before the call to [runAsJuliaThread].
+ * Newly adopted JVM threads will have their `gc_state` initialized to [jl_tls_states_t.JL_GC_STATE_UNSAFE], which they
+ * keep afterward.
+ * During [runAsJuliaThread], the current Julia thread's `gc_state` is set to [jl_tls_states_t.JL_GC_STATE_SAFE].
+ * This means that the GC should be able to run safely without deadlocks when using Julia solely through
+ * [runAsJuliaThread].
+ *
+ * Note that non-adopted Julia threads have their `gc_state` set to [jl_tls_states_t.JL_GC_STATE_UNSAFE] by default,
+ * **BUT NOT FOR THE MAIN JULIA THREAD** (which is also the main JVM thread).
+ * This means that, by default, your application **MAY** deadlock when a non-main thread tries to run the GC, because of
+ * the main Julia thread's `gc_state`.
+ * If so, you may need to set the `gc_state` of the main thread to [jl_tls_states_t.JL_GC_STATE_UNSAFE], **WHICH IS NOT
+ * THE DEFAULT** (it is [jl_tls_states_t.JL_GC_STATE_SAFE]).
+ *
  * Requires Julia 1.9.0 or later.
  *
  * Warning: Julia 1.9.0 and 1.9.1 have unsafe adoption mechanisms which will fail if the GC is running. Use 1.9.2 or
  * later to avoid this issue. See [this PR](https://github.com/JuliaLang/julia/pull/49934) for more info.
  */
-inline fun <R> Julia.runInJuliaThread(func: () -> R): R {
-    if (!inJuliaThread()) jl_adopt_thread()
+inline fun <R> Julia.runAsJuliaThread(func: () -> R): R {
+    val wasAdopted = if (!inJuliaThread()) {
+        jl_adopt_thread()
+        DebuggingUtils.threadAdopted(this)
+        true
+    } else {
+        false
+    }
+
+    if (!wasAdopted && jl_gc_running()) {
+        // `jl_gc_unsafe_enter` will segfault since the GC is running
+        val tls = jl_tls_states_t(jl_all_tls_states(jl_threadid().toInt()))
+        if (tls.gc_state != jl_tls_states_t.JL_GC_STATE_UNSAFE) {
+            jl_safepoint_wait_gc()
+        } else {
+            // The GC is currently waiting for this thread.
+            tls.gc_state = jl_tls_states_t.JL_GC_STATE_WAITING
+            jl_safepoint_wait_gc()
+        }
+    }
+
+    // TODO: still unsafe since the GC could start between the `if` and `jl_gc_enter`.
+    //  Use `jl_gc_disable_counter` (1.9.2 (and 1.9.1?) only!) to fix this (see `jl_adopt_thread` in 1.9.2)
+
     val oldState = jl_gc_unsafe_enter()
+
     try {
         return func()
     } finally {
-        // Very important: if we have adopted a JVM thread, we must tell Julia that the thread is always in a
-        // GC safe point state when the thread is not running in a Julia context.
         jl_gc_unsafe_leave(oldState)
+        if (wasAdopted) {
+            // Set `gc_state` to `JL_GC_STATE_SAFE`, in order to 'mark' this thread as an adopted JVM thread, which
+            // should not be waited upon when running unmanaged (non-Julia) code.
+            // We MUST do this AFTER `jl_gc_unsafe_enter`, since the transition `SAFE => UNSAFE` will trigger a
+            // safepoint, which might happen while the GC is running, which immediately segfaults.
+            jl_gc_safe_enter()
+        }
+    }
+}
+
+
+/**
+ * The opposite of [runAsJuliaThread].
+ * Inside [runOutsideJuliaThread], there should not be any Julia calls which may trigger the GC (allocations and safepoints).
+ *
+ * During [runAsJuliaThread], the current Julia thread's (if any) `gc_state` is set to [jl_tls_states_t.JL_GC_STATE_UNSAFE].
+ */
+inline fun <R> Julia.runOutsideJuliaThread(func: () -> R): R {
+    return if (inJuliaThread()) {
+        val oldState = jl_gc_safe_enter()
+        try {
+            func()
+        } finally {
+            if (oldState == jl_tls_states_t.JL_GC_STATE_UNSAFE && jl_gc_running()) {
+                // Avoid a segfault in `jl_gc_safe_leave` if `jl_gc_running` and `oldState == JL_GC_STATE_UNSAFE`
+                jl_safepoint_wait_gc()
+            }
+            jl_gc_safe_leave(oldState)
+        }
+    } else {
+        func()
     }
 }
