@@ -137,9 +137,7 @@ internal class ThreadingTest: BaseTest() {
         // See below for an alternative.
 //        jl.putMainJuliaThreadToSleep()
 
-        // TODO: currently not merged in the 1.10-DEV branch, therefore this would fails in julia-nightly
-        //  When merged, remove the `< v1.10` condition
-        val isGCSafe = JuliaVersion >= JuliaVersion(1, 9, 2) && JuliaVersion < JuliaVersion(1, 10)
+        val isGCSafe = JuliaVersion >= JuliaVersion(1, 9, 2)
 
         val threads = mutableListOf<Thread>()
         for (i in 0 until JULIA_THREADS) {
