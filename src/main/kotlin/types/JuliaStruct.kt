@@ -5,6 +5,9 @@ import kotlin.reflect.KProperty0
 import kotlin.reflect.jvm.isAccessible
 
 
+/**
+ * Helper to create lazily computed field offsets using the corresponding Julia type.
+ */
 class JuliaStruct(private val structName: String, place: Location) {
 
     enum class Location {
