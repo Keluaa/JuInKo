@@ -171,6 +171,8 @@ class JuliaImpl_1_10_0: JuliaImplBase() {
 
         external fun jl_breakpoint(v: jl_value_t)
 
+        external fun jl_safepoint_wait_gc()
+
         // Moved to julia-internal in 1.9
 
         external fun jl_symbol_name(s: jl_sym_t): String
@@ -187,6 +189,8 @@ class JuliaImpl_1_10_0: JuliaImplBase() {
 
         external fun jl_gc_unsafe_enter(): Byte
         external fun jl_gc_unsafe_leave(state: Byte)
+        external fun jl_gc_safe_enter(): Byte
+        external fun jl_gc_safe_leave(state: Byte)
     }
 
     private val internal = Internal()
@@ -204,6 +208,8 @@ class JuliaImpl_1_10_0: JuliaImplBase() {
 
     override fun jl_breakpoint(v: jl_value_t) = internal.jl_breakpoint(v)
 
+    override fun jl_safepoint_wait_gc() = internal.jl_safepoint_wait_gc()
+
     override fun jl_symbol_name(s: jl_sym_t) = internal.jl_symbol_name(s)
 
     override fun jl_astaggedvalue(v: jl_value_t) = internal.jl_astaggedvalue(v)
@@ -218,4 +224,6 @@ class JuliaImpl_1_10_0: JuliaImplBase() {
 
     override fun jl_gc_unsafe_enter() = internal.jl_gc_unsafe_enter()
     override fun jl_gc_unsafe_leave(state: Byte) = internal.jl_gc_unsafe_leave(state)
+    override fun jl_gc_safe_enter() = internal.jl_gc_safe_enter()
+    override fun jl_gc_safe_leave(state: Byte) = internal.jl_gc_safe_leave(state)
 }

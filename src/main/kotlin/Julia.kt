@@ -261,8 +261,10 @@ interface Julia {
     @NotSafePoint fun jl_typeof(v: jl_value_t): jl_value_t
     @NotSafePoint fun jl_get_fieldtypes(v: jl_value_t): jl_value_t
 
-    @NotSafePoint fun jl_gc_unsafe_enter(): Byte
+    fun jl_gc_unsafe_enter(): Byte
     @NotSafePoint fun jl_gc_unsafe_leave(state: Byte)
+    @NotSafePoint fun jl_gc_safe_enter(): Byte
+    fun jl_gc_safe_leave(state: Byte)
 
     @NotSafePoint fun jl_cpu_pause()
     @NotSafePoint fun jl_cpu_wake()
@@ -361,6 +363,8 @@ interface Julia {
 
     @NotSafePoint fun jl_breakpoint(v: jl_value_t)  // Dummy function to set a breakpoint with GDB
 
+    fun jl_safepoint_wait_gc()  // Only valid if `gc_state` is NOT `JL_GC_STATE_UNSAFE` (0)
+
     /*
      * Singletons/Global vars
      */
@@ -378,6 +382,13 @@ interface Julia {
     fun jl_n_threadpools(): Int
     fun jl_n_threads(): Int
     fun jl_n_threads_per_pool(): Array<Int>
+    fun jl_n_threads_per_pool(pool: Int): Int
+
+    fun jl_all_tls_states_size(): Int
+    @GloballyRooted fun jl_all_tls_states(): Array<Pointer>
+    @GloballyRooted fun jl_all_tls_states(tid: Int): Pointer
+
+    fun jl_gc_running(): Boolean
 
     /*
      * Custom helper methods
@@ -418,7 +429,7 @@ interface Julia {
                 throw JuliaException("There is only one default thread pool before 1.9")
             jl_n_threads()
         } else {
-            jl_n_threads_per_pool()[pool]
+            jl_n_threads_per_pool(pool)
         }
     }
 
@@ -502,7 +513,11 @@ interface Julia {
         return jl_unbox_int64(typeSize)
     }
 
-    fun getGlobalVar(symbol: String): Pointer
+    /**
+     * The pointer to the value of `symbol` in `libjulia`.
+     * If `internal == true`, searches in `libjulia-internal` instead.
+     */
+    fun getGlobalVarPtr(symbol: String, internal: Boolean = false): Pointer
 
     val memory: GlobalMemory
     fun errorBuffer(): IOBuffer
@@ -523,6 +538,25 @@ interface Julia {
      */
     fun waitUntilNativeDebugger(printPID: Boolean = true)
 }
+
+
+/**
+ * Same as [Julia.getGlobalVarPtr] buts casts the results to `T`.
+ */
+inline fun <reified T> Julia.getGlobal(symbol: String, offset: Long = 0L, internal: Boolean = false): T {
+    val address = getGlobalVarPtr(symbol, internal)
+    return when (T::class) {
+        Byte::class    -> address.getByte(offset) as T
+        Short::class   -> address.getShort(offset) as T
+        Int::class     -> address.getInt(offset) as T
+        Long::class    -> address.getLong(offset) as T
+        Pointer::class -> address.getPointer(offset) as T  // jl_value_t, jl_module_t, etc...
+        else -> {
+            throw Exception("Unknown type: ${T::class.java.name}")
+        }
+    }
+}
+
 
 /**
  * Run a function in a Julia thread, from any JVM thread.
