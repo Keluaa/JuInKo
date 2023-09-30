@@ -91,6 +91,7 @@ interface Julia {
     fun jl_init()
     fun jl_is_initialized(): Int
 
+    @AvailableFrom("1.9.0")
     fun jl_adopt_thread(): jl_gcframe_ptr
 
     @NotSafePoint fun jl_box_bool(x: Byte): jl_value_t
@@ -214,12 +215,11 @@ interface Julia {
     @NotSafePoint fun jl_ver_is_release(): Int
     @NotSafePoint fun jl_ver_string(): String
 
-    /*
+    /**
      * Varargs functions
      *
      * JNA doesn't support vararg functions with direct mapping, therefore those are wrapped in a separate interface.
      */
-
     interface Varargs: Library {
         fun jl_new_struct(type: jl_datatype_ptr, vararg params: jl_value_t): jl_value_t
 
@@ -274,16 +274,6 @@ interface Julia {
      * Macros/Non-exported functions re-definitions
      * Those are all implicitly JL_NOTSAFEPOINT
      */
-
-    /*@NotSafePoint fun jl_astaggedvalue(v: jl_value_t): jl_taggedvalue_t {
-        // ((jl_taggedvalue_t*)((char*)(v) - sizeof(jl_taggedvalue_t)))
-        return v.share(-8)
-    }
-
-    @NotSafePoint fun jl_typeof(v: Pointer): jl_value_t {
-        // ((jl_value_t*)(jl_astaggedvalue(v)->header & ~(uintptr_t)15))
-        return Pointer(v.getLong(-8) and 15L.inv())
-    }*/
 
     @NotSafePoint fun jl_set_typeof(v: jl_value_t, type: jl_value_t) {
         // jl_atomic_store_relaxed((_Atomic(jl_value_t*)*)&tag->type, (jl_value_t*)t);
