@@ -364,8 +364,6 @@ interface Julia {
 
     @NotSafePoint fun jl_breakpoint(v: jl_value_t)  // Dummy function to set a breakpoint with GDB
 
-    fun jl_safepoint_wait_gc()  // Only valid if `gc_state` is NOT `JL_GC_STATE_UNSAFE` (0)
-
     /*
      * Singletons/Global vars
      */
@@ -598,12 +596,17 @@ inline fun <R> Julia.runAsJuliaThread(func: () -> R): R {
     if (!wasAdopted && jl_gc_running()) {
         // `jl_gc_unsafe_enter` will segfault since the GC is running
         val tls = jl_tls_states_t(jl_all_tls_states(jl_threadid().toInt()))
-        if (tls.gc_state != jl_tls_states_t.JL_GC_STATE_UNSAFE) {
-            jl_safepoint_wait_gc()
-        } else {
+        if (tls.gc_state == jl_tls_states_t.JL_GC_STATE_UNSAFE) {
             // The GC is currently waiting for this thread.
             tls.gc_state = jl_tls_states_t.JL_GC_STATE_WAITING
-            jl_safepoint_wait_gc()
+        }
+
+        // Busy wait until the GC finishes. Ideally we would use `jl_safepoint_wait_gc` but it isn't exported.
+        var ms = 1L
+        while (jl_gc_running()) {
+            Thread.sleep(ms)
+            ms += 5
+
         }
     }
 
@@ -641,7 +644,12 @@ inline fun <R> Julia.runOutsideJuliaThread(func: () -> R): R {
         } finally {
             if (oldState == jl_tls_states_t.JL_GC_STATE_UNSAFE && jl_gc_running()) {
                 // Avoid a segfault in `jl_gc_safe_leave` if `jl_gc_running` and `oldState == JL_GC_STATE_UNSAFE`
-                jl_safepoint_wait_gc()
+                // Busy wait until the GC finishes. Ideally we would use `jl_safepoint_wait_gc` but it isn't exported.
+                var ms = 1L
+                while (jl_gc_running()) {
+                    Thread.sleep(ms)
+                    ms += 5
+                }
             }
             jl_gc_safe_leave(oldState)
         }
