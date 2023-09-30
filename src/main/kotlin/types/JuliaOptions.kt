@@ -139,6 +139,8 @@ class JuliaOptions(private val optionsPointer: Pointer) {
             RawField("strip_ir", 1, JuliaVersion >= JuliaVersion("1.8.0")), // int8_t
             RawField("heap_size_hint", 8, JuliaVersion >= JuliaVersion("1.9.0")) // uint64_t
         )
+
+        private var nthreadsPerPoolArray: Memory? = null
     }
 
     var nthreadpools: Int
@@ -154,7 +156,11 @@ class JuliaOptions(private val optionsPointer: Pointer) {
         set(value) {
             val array = Memory((value.size * 2).toLong())
             array.write(0, value, 0, value.size)
-            optionsPointer.setPointer(STRUCT["nthreads_per_pool"], array)
+            synchronized(Companion) {
+                // Keep a reference to the allocated array, as we will need throughout the entire Julia session
+                nthreadsPerPoolArray = array
+                optionsPointer.setPointer(STRUCT["nthreads_per_pool"], array)
+            }
         }
 
     var startupfile: Boolean
