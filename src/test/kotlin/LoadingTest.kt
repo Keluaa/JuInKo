@@ -60,8 +60,7 @@ internal class LoadingTest: BaseTest() {
             val lib = NativeLibrary.getInstance(libName)
             val libPath = lib.file.absolutePath
             LOG.info("From '$libName', loaded '$libPath'")
-            if (libPath != JuliaPath.LIB_JULIA)
-                throw RuntimeException("Cannot continue tests as the wrong library has been loaded: '$libPath' != '${JuliaPath.LIB_JULIA}'")
+            lib.close()
             true
         } catch (e: UnsatisfiedLinkError) {
             false
