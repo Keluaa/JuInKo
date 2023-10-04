@@ -1,4 +1,4 @@
-package com.github.keluaa.juinko.impl
+package com.github.keluaa.juinko
 
 import com.sun.jna.Platform
 import java.io.File
@@ -8,6 +8,18 @@ import java.util.concurrent.TimeUnit
 import java.util.logging.Level
 import java.util.logging.Logger
 
+/**
+ * Finds and holds the paths to the main Julia libraries.
+ * Once this class is loaded, the paths are set cannot be changed.
+ *
+ * To use a custom path to Julia, use the system property `juinko.julia_path`:
+ * ```kotlin
+ *     // "pathToJuliaBinDir" is a path to a directory containing "libjulia"
+ *     System.setProperty("juinko.julia_path", "pathToJuliaBinDir")
+ *     // Then it is safe to load and use `JuliaPath`:
+ *     println(JuliaPath.LIB_JULIA)
+ * ```
+ */
 class JuliaPath {
     companion object {
         private val LOG: Logger = Logger.getLogger(JuliaPath::class.simpleName)
@@ -15,6 +27,9 @@ class JuliaPath {
         private const val JULIA_LIB_NAME = "julia"
         private const val JULIA_INTERNAL_LIB_NAME = "julia-internal"
 
+        /**
+         * Path to the directory containing `libjulia` as well as most libraries Julia relies on.
+         */
         val JULIA_LIB_DIR: String
 
         lateinit var LIB_JULIA: String
@@ -25,12 +40,10 @@ class JuliaPath {
 
         init {
             val options = arrayOf(
-                ::pathFromProperties,
-                ::pathFromBinDir,
-                ::pathFromLibDir,
-                ::pathFromJulia,
-                ::pathFromJuliaLib,
-                ::pathFromCmdLine
+                Companion::pathFromProperties,
+                Companion::pathFromJulia,
+                Companion::pathFromJuliaLib,
+                Companion::pathFromCmdLine
             )
 
             var path: String? = null
@@ -41,7 +54,7 @@ class JuliaPath {
             }
 
             if (path == null)
-                throw FileNotFoundException("Could not get the path to the Julia lib dir from neither the ENV or command line.")
+                throw FileNotFoundException("Could not get the path to the Julia lib directory from neither the ENV or command line.")
 
             path = File(path).path  // Normalize the path
             JULIA_LIB_DIR = path
@@ -59,14 +72,6 @@ class JuliaPath {
 
         private fun pathFromProperties(): String? = cleanPath(System.getProperty("juinko.julia_path", null))
 
-        private fun pathFromBinDir(): String? = cleanPath(System.getenv("JULIA_BINDIR"))
-
-        private fun pathFromLibDir(): String? {
-            val jl_bindir = pathFromBinDir()
-            if (jl_bindir != null) return Paths.get(jl_bindir, "../lib").toString()
-            return null
-        }
-
         private fun pathFromJulia(): String? {
             val jl_exe = cleanPath(System.getenv("JULIA"))
             if (jl_exe != null) return Paths.get(jl_exe).parent.toString()
@@ -80,6 +85,7 @@ class JuliaPath {
         }
 
         private fun pathFromCmdLine(): String? {
+            // Note that we don't bother trying the simpler `which julia` command first, because of juliaup.
             val juliaRunCmd = arrayOf(
                 "julia", "--startup-file=no", "-q", "-O0", "-E",
                 "unsafe_string(ccall(:jl_get_libdir, Cstring, ()))"
@@ -153,8 +159,6 @@ class JuliaPath {
                 }
 
                 val foundLibJuliaInternal = possibleLibJuliaInternal.first()
-
-                println("found: '$foundLibJulia' and '$foundLibJuliaInternal'")
 
                 LIB_JULIA = foundLibJulia
                 LIB_JULIA_INTERNAL = foundLibJuliaInternal

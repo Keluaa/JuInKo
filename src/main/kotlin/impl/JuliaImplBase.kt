@@ -40,9 +40,13 @@ abstract class JuliaImplBase: Julia {
     private lateinit var m_jl_false: jl_module_t
     private lateinit var m_jl_nothing: jl_module_t
 
-    private var m_jl_n_threadpools: Int = 1
-    private var m_jl_n_threads: Int = 0
-    private var m_jl_n_threads_per_pool: Array<Int> = arrayOf(0)
+    private lateinit var m_jl_n_threadpools_ptr: Pointer
+    private lateinit var m_jl_n_threads_ptr: Pointer
+    private lateinit var m_jl_n_threads_per_pool_ptr: Pointer
+
+    private lateinit var m_jl_all_tls_states_size_ptr: Pointer
+    private lateinit var m_jl_all_tls_states_ptr: Pointer
+    private lateinit var m_jl_gc_running_ptr: Pointer
 
     override fun jl_main_module(): jl_module_t = m_jl_main_module
     override fun jl_base_module(): jl_module_t = m_jl_base_module
@@ -54,9 +58,16 @@ abstract class JuliaImplBase: Julia {
     override fun jl_false(): jl_value_t = m_jl_false
     override fun jl_nothing(): jl_value_t = m_jl_nothing
 
-    override fun jl_n_threadpools(): Int = m_jl_n_threadpools
-    override fun jl_n_threads(): Int = m_jl_n_threads
-    override fun jl_n_threads_per_pool(): Array<Int> = m_jl_n_threads_per_pool
+    override fun jl_n_threadpools(): Int = m_jl_n_threadpools_ptr.getInt(0)
+    override fun jl_n_threads(): Int = m_jl_n_threads_ptr.getInt(0)
+    override fun jl_n_threads_per_pool(): Array<Int> = m_jl_n_threads_per_pool_ptr.getPointer(0).getIntArray(0, jl_n_threadpools()).toTypedArray()
+    override fun jl_n_threads_per_pool(pool: Int) = m_jl_n_threads_per_pool_ptr.getPointer(0).getInt(pool * 4L)
+
+    override fun jl_all_tls_states_size() = m_jl_all_tls_states_size_ptr.getInt(0)
+    override fun jl_all_tls_states(): Array<Pointer> = m_jl_all_tls_states_ptr.getPointer(0).getPointerArray(0)
+    override fun jl_all_tls_states(tid: Int): Pointer = m_jl_all_tls_states_ptr.getPointer(0).getPointer(tid * 8L)
+
+    override fun jl_gc_running() = m_jl_gc_running_ptr.getInt(0) == 1
 
     /*
      * Utilities
@@ -111,30 +122,12 @@ abstract class JuliaImplBase: Julia {
         }
     }
 
-    final override fun getGlobalVar(symbol: String): Pointer {
-        // Important detail: 'getGlobalVariableAddress' returns a pointer to the address of the symbol, not a pointer to
-        // the symbol. See https://github.com/JuliaLang/julia/issues/36092#issuecomment-733292636
-        return lib.getGlobalVariableAddress(symbol).getPointer(0)
-            ?: throw NullPointerException("Could not find the '$symbol' symbol in '${lib.file.absolutePath}'")
-    }
-
-    inline fun <reified T> getGlobal(symbol: String, offset: Long = 0L, internal: Boolean = false): T {
+    final override fun getGlobalVarPtr(symbol: String, internal: Boolean): Pointer {
         val lib = if (internal) libInternal else lib
         val address = lib.getGlobalVariableAddress(symbol)
         if (address == null || Pointer.nativeValue(address) == 0L)
             throw NullPointerException("Could not find $symbol in '${lib.file.absolutePath}'")
-
-        return when (T::class) {
-            Byte::class       -> address.getByte(offset) as T
-            Short::class      -> address.getShort(offset) as T
-            Int::class        -> address.getInt(offset) as T
-            Long::class       -> address.getLong(offset) as T
-            Pointer::class    -> address.getPointer(offset) as T
-            jl_value_t::class -> address.getPointer(offset) as T
-            else -> {
-                throw Exception("Unknown type: ${T::class.java.name}")
-            }
-        }
+        return address
     }
 
     /*
@@ -156,22 +149,25 @@ abstract class JuliaImplBase: Julia {
 
         jl_init()
 
-        m_jl_main_module = getGlobalVar("jl_main_module")
-        m_jl_base_module = getGlobalVar("jl_base_module")
-        m_jl_core_module = getGlobalVar("jl_core_module")
-        m_jl_emptysvec = getGlobalVar("jl_emptysvec")
-        m_jl_emptytuple = getGlobalVar("jl_emptytuple")
-        m_jl_true = getGlobalVar("jl_true")
-        m_jl_false = getGlobalVar("jl_false")
-        m_jl_nothing = getGlobalVar("jl_nothing")
-        m_jl_n_threads = getGlobal<Int>("jl_n_threads")
+        m_jl_main_module = getGlobal<jl_value_t>("jl_main_module")
+        m_jl_base_module = getGlobal<jl_value_t>("jl_base_module")
+        m_jl_core_module = getGlobal<jl_value_t>("jl_core_module")
+        m_jl_emptysvec = getGlobal<jl_value_t>("jl_emptysvec")
+        m_jl_emptytuple = getGlobal<jl_value_t>("jl_emptytuple")
+        m_jl_true = getGlobal<jl_value_t>("jl_true")
+        m_jl_false = getGlobal<jl_value_t>("jl_false")
+        m_jl_nothing = getGlobal<jl_value_t>("jl_nothing")
+        m_jl_n_threads_ptr = getGlobalVarPtr("jl_n_threads")
 
         if (JuliaVersion >= JuliaVersion(1, 9)) {
-            m_jl_n_threadpools = getGlobal<Int>("jl_n_threadpools")
-            m_jl_n_threads = getGlobal<Int>("jl_n_threads")
+            m_jl_n_threadpools_ptr = getGlobalVarPtr("jl_n_threadpools")
+            m_jl_n_threads_per_pool_ptr = getGlobalVarPtr("jl_n_threads_per_pool")
+        }
 
-            val n_threads_per_pool = getGlobal<Pointer>("jl_n_threads_per_pool")
-            m_jl_n_threads_per_pool = n_threads_per_pool.getIntArray(0, m_jl_n_threadpools).toTypedArray()
+        m_jl_gc_running_ptr = getGlobalVarPtr("jl_gc_running", internal = true)
+        m_jl_all_tls_states_ptr = getGlobalVarPtr("jl_all_tls_states", internal = true)
+        if (JuliaVersion >= JuliaVersion("1.9")) {
+            m_jl_all_tls_states_size_ptr = getGlobalVarPtr("jl_all_tls_states_size", internal = true)
         }
 
         varargsImpl = Native.load(JuliaPath.LIB_JULIA, getVarargsImplClass())

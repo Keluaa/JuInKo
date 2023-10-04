@@ -8,6 +8,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.Test
 import java.lang.reflect.InvocationTargetException
 import kotlin.reflect.KClass
+import kotlin.reflect.full.createType
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
 
@@ -24,9 +25,17 @@ internal class PointerOffsets: BaseTest() {
     }
 
     private fun <K : Any> getOffsetFields(k: K, klass: KClass<K>): Map<String, Long> {
+        val rawStructField = klass.memberProperties.find { it.name == "STRUCT" }
+        if (rawStructField != null && rawStructField.returnType == JuliaRawStruct::class.createType()) {
+            rawStructField.isAccessible = true
+            val rawStruct = rawStructField.get(k) as JuliaRawStruct
+            return rawStruct.fields
+        }
+
+        // Get all fields starting with 'OFFSET_'
         return klass.memberProperties
             .filter { it.name.startsWith("OFFSET_") }
-            .map {
+            .mapNotNull {
                 it.isAccessible = true
                 val name = it.name.substring("OFFSET_".length)
                 try {
@@ -38,7 +47,6 @@ internal class PointerOffsets: BaseTest() {
                     else throw e
                 }
             }
-            .filterNotNull()
             .toMap()
     }
 
@@ -119,10 +127,31 @@ internal class PointerOffsets: BaseTest() {
     @Test
     fun jl_options_t() {
         val options = JuliaOptions(Pointer(0))
-        checkAllOffsets(jl.getBaseObj("JLOptions"), options)
+        checkAllOffsets(jl.getBaseObj("JLOptions"), JuliaOptions.Companion)
 
         val ourOptionsSize = options.structSize
         val jlOptionsSize = jl.jl_sizeof_jl_options()
         Assertions.assertEquals(jlOptionsSize, ourOptionsSize)
+    }
+
+    @Test
+    fun jl_tls_states_t() {
+        val task = jl.jl_current_task()
+        val tls = jl_tls_states_t.fromTask(task)
+
+        val tid = jl.jl_threadid()
+        Assertions.assertEquals(tid, tls.tid)
+        Assertions.assertTrue(tid < jl.jl_all_tls_states_size())
+        Assertions.assertEquals(task.ptls, jl.jl_all_tls_states(tid.toInt()))
+
+        // The current task must belong to Julia, and its thread should default to 'managed' state
+        Assertions.assertEquals(jl_tls_states_t.JL_GC_STATE_UNSAFE, tls.gc_state)
+
+        val oldState = jl.jl_gc_safe_enter()
+        Assertions.assertEquals(jl_tls_states_t.JL_GC_STATE_UNSAFE, oldState)
+        Assertions.assertEquals(jl_tls_states_t.JL_GC_STATE_SAFE, tls.gc_state)
+
+        jl.jl_gc_safe_leave(oldState)
+        Assertions.assertEquals(jl_tls_states_t.JL_GC_STATE_UNSAFE, tls.gc_state)
     }
 }

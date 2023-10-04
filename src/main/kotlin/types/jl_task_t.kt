@@ -1,7 +1,6 @@
 package com.github.keluaa.juinko.types
 
 import com.github.keluaa.juinko.*
-import com.github.keluaa.juinko.impl.JuliaImplBase
 import com.sun.jna.Pointer
 import com.sun.jna.PointerType
 
@@ -31,7 +30,7 @@ class jl_task_t(p: Pointer?) : PointerType(p) {
                 OFFSET_rngState + 8 * (RNG_SIZE + 1) + JuliaVersion.from("1.9.0", { 8 }, { 0 })
             } else {
                 // Future-proof approach made possible in 1.9.1
-                (jl as JuliaImplBase).getGlobal<Int>("jl_task_gcstack_offset").toLong()
+                jl.getGlobal<Int>("jl_task_gcstack_offset").toLong()
             }
         }
         private  val OFFSET_world_age:  Long by STRUCT.offset(::OFFSET_gcstack, 8 * 1)
